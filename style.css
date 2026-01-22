@@ -1,37 +1,19 @@
-body {
-  background: #0f172a;
-  color: #ffffff;
-  font-family: Arial, sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
+git push -u origin main
 
-.container {
-  text-align: center;
-  background: #020617;
-  padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
-}
+console.log("app.js loaded");
 
-button {
-  margin-top: 20px;
-  padding: 12px 25px;
-  font-size: 16px;
-  border: none;
-  border-radius: 8px;
-  background: #22c55e;
-  color: black;
-  cursor: pointer;
-}
+const claimBtn = document.getElementById("claimBtn");
+const result = document.getElementById("result");
 
-button:hover {
-  background: #16a34a;
-}
+let claimed = false;
 
-#result {
-  margin-top: 20px;
-  font-size: 18px;
-}
+claimBtn.addEventListener("click", () => {
+  if (claimed) {
+    console.warn("⚠️ Claim already completed");
+    return;
+  }
+
+  claimed = true;
+  result.textContent = "Reward claimed successfully ✅";
+  console.log("Reward claimed successfully");
+});
