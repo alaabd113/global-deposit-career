@@ -1,21 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Global Deposit Career</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Global Deposit | V8.0 Pro</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    
+    <div id="onboarding-overlay" class="onboarding-overlay hidden">
+        <div class="onboarding-card">
+            <div class="logo-container"><div class="orbit-trail"></div><i class="fas fa-globe-americas globe-icon"></i><div class="orbit-ring"><i class="fas fa-shield-alt shield-orbit"></i></div></div>
+            <h1 style="font-size:22px; font-weight:bold; color:white; margin-bottom:5px">Welcome to Global Deposit</h1>
+            <p style="color:#666; font-size:13px; margin-bottom:25px">Elite Career Investment System</p>
+            
+            <div class="term-item"><div class="term-icon"><i class="fas fa-file-contract"></i></div><div><div class="term-title">60-Day Cycle</div><div class="term-desc">Funds are locked for 60 operational days.</div></div></div>
+            <div class="term-item"><div class="term-icon"><i class="fas fa-moon"></i></div><div><div class="term-title">Sunday Protocol</div><div class="term-desc">Markets closed on Sundays (0% Yield).</div></div></div>
+            <div class="term-item"><div class="term-icon"><i class="fas fa-clock"></i></div><div><div class="term-title">Daily Claim</div><div class="term-desc">You must claim daily to secure rewards.</div></div></div>
+            
+            <button class="hero-btn" id="onboarding-accept" style="margin-top:15px">Accept & Start</button>
+        </div>
+    </div>
 
-  <div class="container">
-    <h1>Global Deposit Career</h1>
-    <p>Your project is running successfully 🚀</p>
+    <div class="backdrop" id="backdrop"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo"><i class="fas fa-shield-alt" style="color:#C5A059"></i> Global Deposit</div>
+            <button class="sidebar-close" id="sidebar-close"><i class="fas fa-times"></i></button>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-item active"><i class="fas fa-th-large"></i> Dashboard</div>
+            <div class="nav-item"><i class="fas fa-wallet"></i> Wallet</div>
+            <div class="nav-item"><i class="fas fa-chart-line"></i> Analytics</div>
+            <div class="nav-item"><i class="fas fa-user"></i> Profile</div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-card">
+                <div class="user-avatar">U</div>
+                <div class="user-info">
+                    <div class="user-name">User</div>
+                    <div class="user-tier" id="sidebar-tier">Intern</div>
+                </div>
+            </div>
+        </div>
+    </aside>
 
-    <button id="claimBtn">Claim Reward</button>
+    <header class="main-header">
+        <div class="header-left">
+            <div class="logo-container" style="width:30px; height:30px; margin:0"><i class="fas fa-globe-americas globe-icon" style="font-size:20px"></i></div>
+            <span class="header-title">Global Deposit</span>
+        </div>
+        <div class="header-right">
+            <div class="shield-badge" id="shield-indicator"><i class="fas fa-shield-alt"></i> Protected</div>
+            <button class="menu-toggle" id="menu-toggle"><i class="fas fa-bars"></i></button>
+        </div>
+    </header>
 
-    <p id="result"></p>
-  </div>
+    <main class="main-content">
+        <div class="pulse-card balance-card">
+            <div class="balance-label">Total Asset Value</div>
+            <div class="balance-value" id="balance-display">$0.00</div>
+            <div class="balance-meta">
+                <div class="meta-item"><i class="fas fa-layer-group"></i><span id="tier-name">Intern</span></div>
+                <div class="meta-item"><i class="fas fa-clock"></i><span id="day-counter">Day 1 / 60</span></div>
+            </div>
+        </div>
 
-  <script src="app.js"></script>
+        <button class="hero-btn" id="claim-btn">Claim Daily Reward</button>
+
+        <div class="pulse-card" id="market-section">
+            <div class="market-top-bar">
+                <div class="coin-info">
+                    <div class="coin-icon"><i class="fas fa-cube"></i></div>
+                    <div><h3 style="color:#fff; font-weight:bold">BNB / USDT</h3><p style="color:#777; font-size:11px">Binance Smart Chain</p></div>
+                </div>
+                <div class="market-price-box">
+                    <div class="market-price" id="market-price-text">624.50</div>
+                </div>
+            </div>
+            <div class="timeframes"><div class="tf-btn">1H</div><div class="tf-btn active">1D</div><div class="tf-btn">1W</div></div>
+            <canvas id="market-canvas"></canvas>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="pulse-card stat-card"><div class="stat-label">Daily Yield</div><div class="stat-value gold" id="daily-rate">2.20%</div></div>
+            <div class="pulse-card stat-card"><div class="stat-label">Total Profit</div><div class="stat-value green" id="total-earned">$0.00</div></div>
+        </div>
+        <div class="version-tag">V8.0 FINAL</div>
+    </main>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <div id="retention-modal" class="retention-overlay">
+        <div class="retention-card">
+            <i class="fas fa-flag-checkered text-5xl text-[#C5A059] mb-4"></i>
+            <h2 class="text-2xl font-bold text-white mb-2">CONTRACT COMPLETE</h2>
+            <p class="text-gray-400 text-sm mb-6">60-Day Cycle Finished.</p>
+            <div class="flex flex-col gap-3">
+                <button onclick="RetentionProtocol.renew()" class="hero-btn">Renew</button>
+                <button onclick="RetentionProtocol.withdraw()" class="p-3 rounded-xl border border-white/20 text-gray-400">Withdraw</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="god-mode" class="god-mode-overlay">
+        <div class="god-mode-card">
+            <h3 style="color:#ff4444; margin-bottom:15px; font-weight:bold">GOD MODE</h3>
+            <button class="god-btn" onclick="GodMode.skipDay()">Skip +1 Day</button>
+            <button class="god-btn" onclick="GodMode.jumpToRetention()">Jump to Day 60</button>
+            <button class="god-btn" onclick="GodMode.toggleSunday()">Toggle Sunday</button>
+            <button class="god-btn" onclick="GodMode.addBalance()">Add $100</button>
+            <button class="god-btn" onclick="GodMode.resetClaim()">Reset Claim</button>
+            <button class="god-btn danger" onclick="GodMode.factoryReset()">Factory Reset</button>
+            <button class="god-btn" onclick="GodMode.close()" style="text-align:center; margin-top:10px">CLOSE</button>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
 </body>
 </html>
