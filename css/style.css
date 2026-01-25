@@ -2,29 +2,25 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body { margin: 0; background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
 
-/* Glassmorphism */
+/* Glassmorphism Premium */
 .glass-card { background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(25px); border: 1px solid rgba(255, 215, 0, 0.15); border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.7); }
 
-/* Animations - Market Pulse & Shimmer */
-.market-card.trading-active::before {
-  content: ''; position: absolute; inset: -50%;
-  background: radial-gradient(circle, rgba(0, 255, 136, 0.15) 0%, transparent 70%);
-  animation: marketPulse 4s infinite;
-}
-@keyframes marketPulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }
+/* Welcome Screen Fix (Z-Index Audit) */
+.intro-overlay { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000; display: flex; align-items: center; justify-content: center; }
 
-/* Psychological Feedback Animations */
-.claim-button.ready {
-  background: linear-gradient(135deg, #FFD700, #DAA520); color: #000;
-  animation: claimPulse 2s infinite; font-weight: 800;
-}
-@keyframes claimPulse { 50% { transform: scale(1.05); box-shadow: 0 0 30px rgba(255, 215, 0, 0.5); } }
+/* animations Triggers */
+.claim-button.ready { background: linear-gradient(135deg, #FFD700, #DAA520); animation: claimPulse 2s infinite; color: #000; font-weight: 800; }
+@keyframes claimPulse { 50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(255, 215, 0, 0.5); } }
 
 .claim-button.burned { background: #ff4444 !important; animation: burnShake 0.5s infinite; }
 @keyframes burnShake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 
-/* Tier Luxury Effects */
-.contract-card[data-tier="6"] { border: 2px solid #b3e5fc; position: relative; overflow: hidden; }
+/* Sunday Lock View */
+.market-card.sunday-locked::before { background: radial-gradient(circle, rgba(255, 215, 0, 0.1), transparent 70%); }
+.market-card.sunday-locked .market-price { color: #888; }
+
+/* Luxury Tier 6 Effects */
+.contract-card[data-tier="6"] { border: 2px solid #b3e5fc; overflow: hidden; position: relative; }
 .contract-card[data-tier="6"]::after {
   content: ''; position: absolute; inset: -3px;
   background: conic-gradient(from 0deg, #03a9f4, transparent, #03a9f4);
@@ -32,11 +28,7 @@ body { margin: 0; background: #000; color: #fff; font-family: 'Segoe UI', sans-s
 }
 @keyframes diamondSpin { to { transform: rotate(360deg); } }
 
-/* Bottom Navigation */
-.bottom-nav { position: fixed; bottom: 0; width: 100%; height: 70px; background: rgba(5, 5, 5, 0.95); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #333; z-index: 1000; }
+/* Bottom Nav */
+.bottom-nav { position: fixed; bottom: 0; width: 100%; height: 70px; background: #050505; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #333; z-index: 1000; }
 .nav-item { color: #666; display: flex; flex-direction: column; align-items: center; font-size: 11px; cursor: pointer; transition: 0.3s; }
 .nav-item.active { color: #FFD700; }
-
-/* Floating Elements & Toasts */
-.toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; }
-.history-card { background: rgba(20, 20, 20, 0.9); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 3px solid gold; }
