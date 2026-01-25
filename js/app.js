@@ -1,128 +1,232 @@
-/* =========================================================
-   GLOBAL DEPOSIT V22.0 - MASTER ENGINE (8 SECTIONS)
-   ========================================================= */
+// ═══════════════════════════════════════════════════════════
+// EXPERIENCE LAYER - ANIMATION TRIGGERS
+// ═══════════════════════════════════════════════════════════
 
-(() => {
-    // 1. CONFIG / CONSTITUTION [cite: 357, 358]
-    const STORAGE_KEY = 'gd_core_data_v21';
-    const ADMIN_STORAGE_KEY = 'gd_admin_data_v21';
-    const TIERS = {
-        1: { name: 'Intern', price: 25, base: 2.2, booster: 0.0, bonus: 2.0 },
-        2: { name: 'Junior', price: 50, base: 2.2, booster: 0.1, bonus: 5.0 },
-        3: { name: 'Pro',    price: 100, base: 2.2, booster: 0.2, bonus: 12.0 },
-        4: { name: 'Expert', price: 250, base: 2.2, booster: 0.3, bonus: 30.0 },
-        5: { name: 'Manager',price: 500, base: 2.2, booster: 0.4, bonus: 70.0 },
-        6: { name: 'Partner',price: 1000,base: 2.2, booster: 0.5, bonus: 150.0 }
-    };
-    const PHASE_MODS = { 1: 0.0, 2: 0.4, 3: 0.8 };
+function updateMarketCardState() {
+  const marketCard = document.querySelector('.market-card');
+  if (!marketCard) return;
+  
+  if (isSunday()) {
+    marketCard.classList.add('sunday-locked');
+    marketCard.classList.remove('trading-active');
+  } else {
+    marketCard.classList.remove('sunday-locked');
+    marketCard.classList.add('trading-active');
+  }
+}
 
-    // 2. STATE MANAGER [cite: 364, 370]
-    let state = loadState();
-    function loadState() {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (!stored) return resetState();
-        try {
-            const s = JSON.parse(stored);
-            if (s._checksum !== generateChecksum(s.user)) return resetState();
-            return s;
-        } catch { return resetState(); }
+function updateClaimButtonState() {
+  const claimBtn = document.getElementById('claimButton');
+  if (!claimBtn) return;
+  
+  // Remove all state classes
+  claimBtn.classList.remove('ready', 'cooldown', 'sunday-locked', 'burned');
+  
+  if (isSunday()) {
+    claimBtn.classList.add('sunday-locked');
+  } else if (canClaim()) {
+    claimBtn.classList.add('ready');
+  } else {
+    claimBtn.classList.add('cooldown');
+    
+    // Calculate cooldown progress percentage
+    const state = loadState();
+    const nextClaimTime = (state.user.lastClaimTime || 0) + (24 * 60 * 60 * 1000);
+    const totalCooldown = 24 * 60 * 60 * 1000;
+    const elapsed = Date.now() - (state.user.lastClaimTime || 0);
+    const progress = Math.min((elapsed / totalCooldown) * 100, 100);
+    
+    claimBtn.style.setProperty('--cooldown-progress', progress + '%');
+  }
+  
+  // Urgent state when < 2 hours remain
+  const state = loadState();
+  const nextClaimTime = (state.user.lastClaimTime || 0) + (24 * 60 * 60 * 1000);
+  const timeRemaining = nextClaimTime - Date.now();
+  
+  if (timeRemaining > 0 && timeRemaining < 2 * 60 * 60 * 1000) {
+    const countdownEl = document.querySelector('.claim-countdown');
+    if (countdownEl) {
+      countdownEl.classList.add('urgent');
     }
-    function generateChecksum(u) {
-        return btoa(JSON.stringify({b: u.balance, e: u.totalEarned, c: u.activeContracts.length}));
-    }
-    function resetState() {
-        return { user: { balance: 0, totalEarned: 0, lastClaimTime: 0, activeContracts: [], protectionCards: 0, referralCode: 'GD'+Math.random().toString(36).substr(2,6).toUpperCase(), activatedAt: Date.now() }, _checksum: '' };
-    }
-    function saveState() {
-        state._checksum = generateChecksum(state.user);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        updateUI();
-    }
+  }
+}
 
-    // 3. CONTRACT ENGINE [cite: 374, 386]
-    window.activateContract = (tierId) => {
-        const tier = TIERS[tierId];
-        if (state.user.balance < tier.price) return showToast('رصيد غير كافٍ', 'error');
-        state.user.balance -= tier.price;
-        state.user.activeContracts.push({ id: Date.now(), tier: tierId, activatedAt: Date.now(), status: 'active', unclaimed: 0, day: 1 });
-        saveState();
-    };
+function triggerClaimSuccess(amount) {
+  // Success burst effect
+  const burst = document.createElement('div');
+  burst.className = 'claim-success-burst';
+  document.body.appendChild(burst);
+  
+  setTimeout(() => burst.remove(), 1000);
+  
+  // Balance update animation
+  const balanceEl = document.getElementById('balance');
+  if (balanceEl) {
+    balanceEl.classList.add('updating');
+    setTimeout(() => balanceEl.classList.remove('updating'), 600);
+  }
+  
+  // Haptic feedback (if supported)
+  if ('vibrate' in navigator) {
+    navigator.vibrate([50, 30, 50]);
+  }
+}
 
-    // 4. CLAIM & BURN ENGINE [cite: 391, 413]
-    function canClaim() {
-        if (new Date().getDay() === 0) return false;
-        return Date.now() - state.user.lastClaimTime >= 86400000;
+function triggerBurnPunishment(amount) {
+  const claimBtn = document.getElementById('claimButton');
+  if (claimBtn) {
+    claimBtn.classList.add('burned');
+    setTimeout(() => claimBtn.classList.remove('burned'), 500);
+  }
+  
+  // Show burn indicator
+  const dashboard = document.querySelector('.dashboard');
+  if (dashboard) {
+    dashboard.classList.add('burn-occurred');
+    
+    const indicator = document.createElement('div');
+    indicator.className = 'burn-indicator';
+    indicator.textContent = `Burned: $${amount.toFixed(2)}`;
+    dashboard.appendChild(indicator);
+    
+    setTimeout(() => {
+      dashboard.classList.remove('burn-occurred');
+      indicator.remove();
+    }, 5000);
+  }
+  
+  // Harsh haptic
+  if ('vibrate' in navigator) {
+    navigator.vibrate([100, 50, 100, 50, 100]);
+  }
+}
+
+function triggerShieldProtection() {
+  const indicator = document.createElement('div');
+  indicator.className = 'shield-saved-indicator';
+  indicator.innerHTML = '<div>Shield Protected!</div><div style="font-size: 14px; margin-top: 8px; opacity: 0.9;">Your profits are safe</div>';
+  document.body.appendChild(indicator);
+  
+  setTimeout(() => indicator.remove(), 3000);
+  
+  // Gentle haptic
+  if ('vibrate' in navigator) {
+    navigator.vibrate([30, 20, 30]);
+  }
+}
+
+function updateContractTierVisuals() {
+  const state = loadState();
+  
+  state.user.activeContracts.forEach(contract => {
+    const contractEl = document.getElementById(`contract_tier_${contract.tier}`);
+    if (contractEl) {
+      contractEl.setAttribute('data-tier', contract.tier);
+      
+      if (contract.status === 'active') {
+        contractEl.classList.add('active');
+      } else {
+        contractEl.classList.remove('active');
+      }
     }
-    window.performClaim = () => {
-        if (!canClaim()) return;
-        // حساب الربح بناءً على المراحل [cite: 358]
-        let profit = 0;
-        state.user.activeContracts.forEach(c => {
-            const age = Math.floor((Date.now() - c.activatedAt) / 86400000) + 1;
-            const phase = age <= 20 ? 1 : age <= 40 ? 2 : 3;
-            const rate = TIERS[c.tier].base + TIERS[c.tier].booster + PHASE_MODS[phase];
-            profit += (TIERS[c.tier].price * rate / 100);
-        });
-        state.user.balance += profit;
-        state.user.totalEarned += profit;
-        state.user.lastClaimTime = Date.now();
-        saveState();
-        triggerSuccessEffect(profit);
-    };
+  });
+}
 
-    // 5. MARKET ENGINE [cite: 91, 215]
-    const COINS = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA'];
-    function startMarket() {
-        const day = new Date().getDay();
-        document.getElementById('coinNameDisplay').innerText = `${COINS[day % 6]} / USDT`;
-        if (day === 0) { // قانون الأحد الصارم [cite: 91]
-            document.getElementById('marketPrice').innerText = "FROZEN";
-            return;
-        }
-        setInterval(() => {
-            document.getElementById('marketPrice').innerText = (Math.random() * 500 + 1000).toFixed(2);
-        }, 3000);
+// ═══════════════════════════════════════════════════════════
+// INTEGRATION PATCHES (MODIFY EXISTING FUNCTIONS)
+// ═══════════════════════════════════════════════════════════
+
+// PATCH: Add to existing performClaim() after balance update
+function performClaim() {
+  // ... existing guards ...
+  
+  // Calculate total claimable
+  let totalClaimable = 0;
+  state.user.activeContracts.forEach(contract => {
+    if (contract.status === 'active' || contract.status === 'expired') {
+      totalClaimable += contract.unclaimedBalance;
+      contract.unclaimedBalance = 0;
     }
+  });
+  
+  if (totalClaimable === 0) {
+    showToast('No rewards to claim', 'info');
+    return;
+  }
+  
+  // Add to balance
+  state.user.balance += totalClaimable;
+  state.user.totalEarned += totalClaimable;
+  state.user.lastClaimTime = now;
+  
+  // ... existing claim logging ...
+  
+  saveState(state);
+  
+  // TRIGGER SUCCESS ANIMATION
+  triggerClaimSuccess(totalClaimable);
+  
+  updateUI();
+  showToast(t('claimSuccess') + ' $' + totalClaimable.toFixed(2), 'success');
+}
 
-    // 6. EXPERIENCE LAYER (Claude temporal UX)
-    function handleUX() {
-        const hour = new Date().getHours();
-        if (hour >= 6 && hour <= 10 && canClaim()) document.getElementById('claimButton')?.classList.add('ready');
-    }
+// PATCH: Add to existing checkBurnConditions() after burn occurs
+function checkBurnConditions() {
+  // ... existing burn logic ...
+  
+  if (state.user.protectionCards > 0) {
+    state.user.protectionCards--;
+    state.user.lastClaimTime = now;
+    saveState(state);
+    
+    // TRIGGER SHIELD ANIMATION
+    triggerShieldProtection();
+    
+    showToast(t('shieldProtected'), 'info');
+    return;
+  }
+  
+  // Burn logic...
+  let totalBurned = 0;
+  state.user.activeContracts.forEach(contract => {
+    // ... burn calculation ...
+    totalBurned += burnAmount;
+  });
+  
+  if (totalBurned > 0) {
+    state.user.lastClaimTime = now;
+    saveState(state);
+    
+    // TRIGGER BURN PUNISHMENT ANIMATION
+    triggerBurnPunishment(totalBurned);
+    
+    showToast(t('burnWarning') + ' $' + totalBurned.toFixed(2), 'error');
+  }
+}
 
-    // 7. ADMIN SYNC [cite: 423, 424]
-    function checkAdmin() {
-        const adminData = JSON.parse(localStorage.getItem(ADMIN_STORAGE_KEY) || '{}');
-        if (adminData.deposits) {
-            adminData.deposits.forEach(d => {
-                if (d.status === 'approved' && !d.processed) {
-                    state.user.balance += parseFloat(d.amount);
-                    d.processed = true;
-                }
-            });
-            localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(adminData));
-            saveState();
-        }
-    }
+// PATCH: Add to existing updateUI()
+function updateUI() {
+  const state = loadState();
+  
+  // ... existing UI updates ...
+  
+  // UPDATE EXPERIENCE LAYER
+  updateMarketCardState();
+  updateClaimButtonState();
+  updateContractTierVisuals();
+  
+  // ... rest of existing code ...
+}
 
-    // 8. UI BINDINGS
-    function updateUI() {
-        document.getElementById('balanceDisplay').innerText = `$${state.user.balance.toFixed(2)}`;
-        document.getElementById('totalEarnedDisplay').innerText = `$${state.user.totalEarned.toFixed(2)}`;
-        document.getElementById('activeContractsCount').innerText = state.user.activeContracts.length;
-        document.getElementById('referralCodeInput').value = state.user.referralCode;
-    }
-
-    window.switchTab = (tab) => {
-        document.querySelectorAll('.tab-section').forEach(s => s.style.display = 'none');
-        document.getElementById(`${tab}-section`).style.display = 'block';
-    };
-
-    // Initialization
-    startMarket();
-    handleUX();
-    setInterval(checkAdmin, 5000);
-    document.getElementById('startBtn').onclick = () => { document.getElementById('welcomeScreen').style.display = 'none'; };
-    document.getElementById('claimButton').onclick = performClaim;
-    updateUI();
-})();
+// PATCH: Add to init() periodic updates
+function init() {
+  // ... existing initialization ...
+  
+  // Update experience layer every second for countdown
+  setInterval(() => {
+    updateClaimButtonState();
+  }, 1000);
+  
+  // ... rest of existing code ...
+}
