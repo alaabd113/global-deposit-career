@@ -11,15 +11,15 @@
 
   <div id="multiTabWarning" class="multitab-banner hidden">
     <i class="fa-solid fa-triangle-exclamation"></i>
-    <span>الجلسة نشطة في صفحة أخرى.</span>
+    <span data-i18n="multiTab">الجلسة نشطة في صفحة أخرى.</span>
     <button id="useHereBtn">استخدم هنا</button>
   </div>
 
   <div id="welcomeScreen" class="intro-overlay">
     <div class="intro-card glass-card">
       <div class="intro-logo"><i class="fa-solid fa-earth-americas"></i></div>
-      <h2>إيداع عالمي</h2>
-      <p class="subtitle">نظام استثمار آمن ومستدام</p>
+      <h2 data-i18n="appTitle">إيداع عالمي</h2>
+      <p class="subtitle" data-i18n="appSubtitle">نظام استثمار آمن ومستدام</p>
       <button id="startBtn" class="gold-btn">ACCESS DASHBOARD 🚀</button>
     </div>
   </div>
@@ -39,11 +39,12 @@
         <i class="fa-solid fa-wallet"></i> <span id="walletConnectText">Connect</span>
       </button>
     </div>
+    <button id="menuBtn" class="menu-btn"><i class="fa-solid fa-bars"></i></button>
   </header>
 
   <main class="app">
     <section id="home-section" class="tab-section">
-      <div class="market-card glass-card trading-active">
+      <div class="market-card glass-card">
         <div class="m-header">
           <div class="coin-pair">
             <div class="icon-bg-bnb" id="coinIcon"><i class="fa-solid fa-coins"></i></div>
@@ -67,11 +68,11 @@
 
       <div class="bottom-stats">
         <div class="stat-card glass-card">
-          <div class="stat-label">العائد اليومي</div>
-          <div class="stat-value gold" id="dailyYieldVal">2.20%</div>
+          <div class="stat-label" data-i18n="dailyYield">العائد اليومي</div>
+          <div class="stat-value gold" id="dailyYieldVal">0.00%</div>
         </div>
         <div class="stat-card glass-card">
-          <div class="stat-label">إجمالي الربح</div>
+          <div class="stat-label" data-i18n="totalEarned">إجمالي الربح</div>
           <div class="stat-value green" id="totalEarnedDisplay">$0.00</div>
         </div>
       </div>
@@ -79,8 +80,7 @@
 
     <section id="invest-section" class="tab-section" style="display:none;">
       <h2 style="color: #FFD700; text-align: center;">باقات الاستثمار</h2>
-      <div class="contracts-grid" id="contractsGrid">
-          </div>
+      <div class="contracts-grid" id="contractsGrid"></div>
     </section>
 
     <section id="wallet-section" class="tab-section" style="display:none;">
@@ -99,7 +99,7 @@
             <input type="text" id="referralCodeInput" readonly>
             <button id="copyRefBtn" class="copy-btn-modern"><i class="fa-solid fa-copy"></i></button>
         </div>
-        <div class="inline-stat">الأعضاء النشطون: <strong id="activeContractsCount">0</strong></div>
+        <div class="inline-stat">الأعضاء: <strong id="activeContractsCount">0</strong></div>
       </div>
     </section>
   </main>
@@ -107,8 +107,8 @@
   <nav class="bottom-nav">
     <button class="nav-item active" onclick="switchTab('home')"><i class="fa-solid fa-house"></i><span>الرئيسية</span></button>
     <button class="nav-item" onclick="switchTab('invest')"><i class="fa-solid fa-gem"></i><span>استثمار</span></button>
-    <button class="nav-item" onclick="switchTab('wallet')"><i class="fa-solid fa-wallet"></i><span>المحفظة</span></button>
-    <button class="nav-item" onclick="switchTab('team')"><i class="fa-solid fa-users"></i><span>الفريق</span></button>
+    <button class="nav-item" onclick="switchTab('wallet')"><i class="fa-solid fa-wallet"></i><span>محفظة</span></button>
+    <button class="nav-item" onclick="switchTab('team')"><i class="fa-solid fa-users"></i><span>فريق</span></button>
   </nav>
 
   <div id="shieldTaskContainer" style="display:none; position:fixed; bottom:80px; right:20px; z-index:999;">
