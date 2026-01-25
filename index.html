@@ -1,123 +1,122 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>Global Deposit | المنصة العالمية</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <title>Global Deposit</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="style.css" />
 </head>
+
 <body class="dashboard">
 
-  <div id="multiTabWarning" class="multitab-banner hidden">
-    <i class="fa-solid fa-triangle-exclamation"></i>
-    <span data-i18n="multiTab">الجلسة نشطة في صفحة أخرى.</span>
-    <button id="useHereBtn">استخدم هنا</button>
-  </div>
-
-  <div id="welcomeScreen" class="intro-overlay">
-    <div class="intro-card glass-card">
-      <div class="intro-logo"><i class="fa-solid fa-earth-americas"></i></div>
-      <h2 data-i18n="appTitle">إيداع عالمي</h2>
-      <p class="subtitle" data-i18n="appSubtitle">نظام استثمار آمن ومستدام</p>
-      <button id="startBtn" class="gold-btn">ACCESS DASHBOARD 🚀</button>
-    </div>
-  </div>
-
+  <!-- ===============================
+       HEADER
+       =============================== -->
   <header class="app-header">
-    <div class="brand-logo">
-      <div class="logo-3d-container">
-        <div class="shield-container">
-          <div class="globe-icon"><i class="fa-solid fa-earth-americas"></i></div>
-          <div class="shield-ring"><i class="fa-solid fa-shield-halved"></i></div>
-        </div>
-      </div>
-      <span class="app-name">Global Deposit</span>
-      <button class="insurance-shield-btn" id="insuranceBtn"><i class="fa-solid fa-shield"></i></button>
-      <button class="info-icon-btn" id="constitutionBtn"><i class="fa-solid fa-scroll"></i></button>
-      <button class="wallet-connect-btn" id="connect-wallet">
-        <i class="fa-solid fa-wallet"></i> <span id="walletConnectText">Connect</span>
-      </button>
-    </div>
-    <button id="menuBtn" class="menu-btn"><i class="fa-solid fa-bars"></i></button>
+    <h1>Global Deposit</h1>
   </header>
 
+  <!-- ===============================
+       MAIN APP
+       =============================== -->
   <main class="app">
-    <section id="home-section" class="tab-section">
-      <div class="market-card glass-card">
-        <div class="m-header">
-          <div class="coin-pair">
-            <div class="icon-bg-bnb" id="coinIcon"><i class="fa-solid fa-coins"></i></div>
-            <div class="pair-text">
-              <h3 id="coinNameDisplay">BTC / USDT</h3>
-              <span>BINANCE SMART CHAIN (BEP20)</span>
-            </div>
-          </div>
-          <div class="live-price">
-            <span id="marketPrice" class="market-price">0.00</span>
-            <span id="bnbChange" class="change">+0.00%</span>
-          </div>
-        </div>
-        <div class="chart-area"><canvas id="marketChartCanvas"></canvas></div>
-      </div>
 
-      <button id="claimButton" class="hero-btn claim-button ready">
-        <i class="fa-solid fa-gem"></i> <span id="claimBtnText">استلام المكافأة</span>
+    <!-- ===============================
+         MARKET CARD
+         =============================== -->
+    <section class="market-card trading-active glass-card">
+      <div class="market-header">
+        <h2 id="coinName">BTC / USDT</h2>
+        <div class="market-price" id="bnbPrice">0.00</div>
+      </div>
+    </section>
+
+    <!-- ===============================
+         CLAIM SECTION
+         =============================== -->
+    <section class="claim-section">
+      <button id="claimButton" class="claim-button">
+        Claim Reward
       </button>
+
       <div class="claim-countdown"></div>
+    </section>
 
-      <div class="bottom-stats">
-        <div class="stat-card glass-card">
-          <div class="stat-label" data-i18n="dailyYield">العائد اليومي</div>
-          <div class="stat-value gold" id="dailyYieldVal">0.00%</div>
-        </div>
-        <div class="stat-card glass-card">
-          <div class="stat-label" data-i18n="totalEarned">إجمالي الربح</div>
-          <div class="stat-value green" id="totalEarnedDisplay">$0.00</div>
-        </div>
+    <!-- ===============================
+         STATS
+         =============================== -->
+    <section class="stats-section">
+      <div class="stat-card">
+        <span>Total Earned</span>
+        <strong id="totalEarned">$0.00</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>Balance</span>
+        <strong id="balance" class="balance-value">$0.00</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>Active Contracts</span>
+        <strong id="activeContracts">0</strong>
       </div>
     </section>
 
-    <section id="invest-section" class="tab-section" style="display:none;">
-      <h2 style="color: #FFD700; text-align: center;">باقات الاستثمار</h2>
-      <div class="contracts-grid" id="contractsGrid"></div>
+    <!-- ===============================
+         CONTRACTS
+         =============================== -->
+    <section class="contracts-section">
+
+      <div id="contract_tier_1" class="contract-card" data-tier="1">
+        <h3>Tier 1</h3>
+        <button onclick="activateContract(1)">Activate</button>
+      </div>
+
+      <div id="contract_tier_2" class="contract-card" data-tier="2">
+        <h3>Tier 2</h3>
+        <button onclick="activateContract(2)">Activate</button>
+      </div>
+
+      <div id="contract_tier_3" class="contract-card" data-tier="3">
+        <h3>Tier 3</h3>
+        <button onclick="activateContract(3)">Activate</button>
+      </div>
+
+      <div id="contract_tier_4" class="contract-card" data-tier="4">
+        <h3>Tier 4</h3>
+        <button onclick="activateContract(4)">Activate</button>
+      </div>
+
+      <div id="contract_tier_5" class="contract-card" data-tier="5">
+        <h3>Tier 5</h3>
+        <button onclick="activateContract(5)">Activate</button>
+      </div>
+
+      <div id="contract_tier_6" class="contract-card" data-tier="6">
+        <h3>Tier 6</h3>
+        <button onclick="activateContract(6)">Activate</button>
+      </div>
+
     </section>
 
-    <section id="wallet-section" class="tab-section" style="display:none;">
-      <div class="balance-section glass-card">
-        <span class="label">الرصيد المتاح</span>
-        <h1 class="main-balance balance-value" id="balanceDisplay">$0.00</h1>
-        <div class="wallet-box">USDT (BEP20)</div>
-      </div>
-      <div class="history-list" id="historyList"></div>
+    <!-- ===============================
+         REFERRAL
+         =============================== -->
+    <section class="referral-section">
+      <input type="text" id="referralCode" readonly />
     </section>
 
-    <section id="team-section" class="tab-section" style="display:none;">
-      <div class="referral-box glass-card">
-        <h3>رابط الإحالة</h3>
-        <div class="copy-row-modern">
-            <input type="text" id="referralCodeInput" readonly>
-            <button id="copyRefBtn" class="copy-btn-modern"><i class="fa-solid fa-copy"></i></button>
-        </div>
-        <div class="inline-stat">الأعضاء: <strong id="activeContractsCount">0</strong></div>
-      </div>
-    </section>
   </main>
 
-  <nav class="bottom-nav">
-    <button class="nav-item active" onclick="switchTab('home')"><i class="fa-solid fa-house"></i><span>الرئيسية</span></button>
-    <button class="nav-item" onclick="switchTab('invest')"><i class="fa-solid fa-gem"></i><span>استثمار</span></button>
-    <button class="nav-item" onclick="switchTab('wallet')"><i class="fa-solid fa-wallet"></i><span>محفظة</span></button>
-    <button class="nav-item" onclick="switchTab('team')"><i class="fa-solid fa-users"></i><span>فريق</span></button>
-  </nav>
+  <!-- ===============================
+       SCRIPTS
+       =============================== -->
+  <script src="app.js"></script>
 
-  <div id="shieldTaskContainer" style="display:none; position:fixed; bottom:80px; right:20px; z-index:999;">
-    <button id="uploadTaskBtn" class="gold-btn" style="border-radius:50px;" onclick="simulateUpload(this)">
-        <span id="uploadTaskText">📸 مهمة الدرع</span>
-    </button>
-  </div>
-
-  <div id="toastContainer" class="toast-container"></div>
-  <script src="js/app.js"></script>
 </body>
 </html>
