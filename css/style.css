@@ -1,34 +1,550 @@
-/* Core Theme */
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { margin: 0; background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
+/* ═══════════════════════════════════════════════════════════
+   MARKET CARD - LIVING FINANCIAL ENGINE
+   ═══════════════════════════════════════════════════════════ */
 
-/* Glassmorphism Premium */
-.glass-card { background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(25px); border: 1px solid rgba(255, 215, 0, 0.15); border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.7); }
-
-/* Welcome Screen Fix (Z-Index Audit) */
-.intro-overlay { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000; display: flex; align-items: center; justify-content: center; }
-
-/* animations Triggers */
-.claim-button.ready { background: linear-gradient(135deg, #FFD700, #DAA520); animation: claimPulse 2s infinite; color: #000; font-weight: 800; }
-@keyframes claimPulse { 50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(255, 215, 0, 0.5); } }
-
-.claim-button.burned { background: #ff4444 !important; animation: burnShake 0.5s infinite; }
-@keyframes burnShake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
-
-/* Sunday Lock View */
-.market-card.sunday-locked::before { background: radial-gradient(circle, rgba(255, 215, 0, 0.1), transparent 70%); }
-.market-card.sunday-locked .market-price { color: #888; }
-
-/* Luxury Tier 6 Effects */
-.contract-card[data-tier="6"] { border: 2px solid #b3e5fc; overflow: hidden; position: relative; }
-.contract-card[data-tier="6"]::after {
-  content: ''; position: absolute; inset: -3px;
-  background: conic-gradient(from 0deg, #03a9f4, transparent, #03a9f4);
-  animation: diamondSpin 4s linear infinite; z-index: -1;
+.market-card {
+  position: relative;
+  overflow: hidden;
 }
-@keyframes diamondSpin { to { transform: rotate(360deg); } }
 
-/* Bottom Nav */
-.bottom-nav { position: fixed; bottom: 0; width: 100%; height: 70px; background: #050505; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #333; z-index: 1000; }
-.nav-item { color: #666; display: flex; flex-direction: column; align-items: center; font-size: 11px; cursor: pointer; transition: 0.3s; }
-.nav-item.active { color: #FFD700; }
+/* Ambient glow pulse */
+.market-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(76, 175, 80, 0.15) 0%, transparent 70%);
+  animation: marketPulse 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes marketPulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.05); }
+}
+
+/* Micro price volatility shimmer */
+.market-price {
+  position: relative;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+}
+
+.market-price::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+  animation: priceShimmer 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes priceShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+/* Sunday mode - frozen but breathing */
+.market-card.sunday-locked::before {
+  background: radial-gradient(circle, rgba(244, 67, 54, 0.1) 0%, transparent 70%);
+  animation: sundayBreath 6s ease-in-out infinite;
+}
+
+@keyframes sundayBreath {
+  0%, 100% { opacity: 0.2; transform: scale(0.98); }
+  50% { opacity: 0.4; transform: scale(1); }
+}
+
+.market-card.sunday-locked .market-price {
+  color: #999;
+  animation: none;
+}
+
+.market-card.sunday-locked .market-price::after {
+  display: none;
+}
+
+/* Active trading glow */
+.market-card.trading-active {
+  box-shadow: 
+    0 4px 20px rgba(76, 175, 80, 0.2),
+    0 0 40px rgba(76, 175, 80, 0.1),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CLAIM BUTTON - PSYCHOLOGICAL STATES
+   ═══════════════════════════════════════════════════════════ */
+
+.claim-button {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+  will-change: transform, box-shadow;
+}
+
+/* READY STATE - Anticipation */
+.claim-button.ready {
+  background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+  box-shadow: 
+    0 4px 20px rgba(76, 175, 80, 0.4),
+    0 0 60px rgba(76, 175, 80, 0.3),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+  animation: claimPulse 2s ease-in-out infinite;
+}
+
+@keyframes claimPulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 
+      0 4px 20px rgba(76, 175, 80, 0.4),
+      0 0 60px rgba(76, 175, 80, 0.3),
+      inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+  50% { 
+    transform: scale(1.02);
+    box-shadow: 
+      0 6px 30px rgba(76, 175, 80, 0.6),
+      0 0 80px rgba(76, 175, 80, 0.4),
+      inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+}
+
+.claim-button.ready::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
+  border-radius: inherit;
+  animation: claimShine 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes claimShine {
+  0% { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(200%) skewX(-15deg); }
+}
+
+/* ACTIVE PRESS - Reward Release */
+.claim-button.ready:active {
+  transform: scale(0.96);
+  box-shadow: 
+    0 2px 10px rgba(76, 175, 80, 0.3),
+    inset 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* COOLDOWN STATE - Patient Waiting */
+.claim-button.cooldown {
+  background: linear-gradient(135deg, #666 0%, #888 100%);
+  box-shadow: 
+    0 2px 8px rgba(0,0,0,0.2),
+    inset 0 -1px 0 rgba(255,255,255,0.1);
+  cursor: not-allowed;
+  color: #ccc;
+}
+
+.claim-button.cooldown::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%);
+  border-radius: 0 0 8px 8px;
+  animation: cooldownProgress 24s linear;
+  width: var(--cooldown-progress, 0%);
+}
+
+@keyframes cooldownProgress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+/* SUNDAY LOCKED - Cold Pause */
+.claim-button.sunday-locked {
+  background: linear-gradient(135deg, #424242 0%, #616161 100%);
+  box-shadow: 
+    0 2px 8px rgba(0,0,0,0.3),
+    inset 0 2px 4px rgba(0,0,0,0.3);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.claim-button.sunday-locked::before {
+  content: '🔒';
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.5;
+  animation: lockFloat 3s ease-in-out infinite;
+}
+
+@keyframes lockFloat {
+  0%, 100% { transform: translateY(-50%) translateY(0px); }
+  50% { transform: translateY(-50%) translateY(-3px); }
+}
+
+/* BURN STATE - Punishment Visual */
+.claim-button.burned {
+  background: linear-gradient(135deg, #D32F2F 0%, #F44336 100%);
+  box-shadow: 
+    0 4px 20px rgba(244, 67, 54, 0.4),
+    inset 0 2px 4px rgba(0,0,0,0.3);
+  animation: burnShake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes burnShake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CONTRACT CARDS - TIER HIERARCHY
+   ═══════════════════════════════════════════════════════════ */
+
+.contract-card {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, box-shadow;
+}
+
+/* Tier 1 - Entry Level */
+.contract-card[data-tier="1"] {
+  background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Tier 2 - Bronze Glow */
+.contract-card[data-tier="2"] {
+  background: linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%);
+  box-shadow: 0 3px 12px rgba(255, 152, 0, 0.2);
+}
+
+/* Tier 3 - Silver Shine */
+.contract-card[data-tier="3"] {
+  background: linear-gradient(135deg, #E0E0E0 0%, #BDBDBD 100%);
+  box-shadow: 0 4px 16px rgba(158, 158, 158, 0.3);
+}
+
+.contract-card[data-tier="3"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(45deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.contract-card[data-tier="3"]:hover::before {
+  opacity: 1;
+  animation: silverShine 1.5s linear infinite;
+}
+
+@keyframes silverShine {
+  0% { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(200%) skewX(-15deg); }
+}
+
+/* Tier 4 - Gold Prestige */
+.contract-card[data-tier="4"] {
+  background: linear-gradient(135deg, #FFD54F 0%, #FFC107 100%);
+  box-shadow: 
+    0 4px 20px rgba(255, 193, 7, 0.4),
+    0 0 40px rgba(255, 193, 7, 0.2);
+  transform: scale(1.02);
+}
+
+.contract-card[data-tier="4"]::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(45deg, 
+    rgba(255,255,255,0.3) 0%, 
+    transparent 30%, 
+    transparent 70%, 
+    rgba(255,255,255,0.3) 100%);
+  border-radius: inherit;
+  animation: goldRotate 8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes goldRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Tier 5 - Platinum Depth */
+.contract-card[data-tier="5"] {
+  background: linear-gradient(135deg, #E0F2F1 0%, #B2DFDB 100%);
+  box-shadow: 
+    0 6px 24px rgba(0, 150, 136, 0.3),
+    0 0 60px rgba(0, 150, 136, 0.15),
+    inset 0 1px 0 rgba(255,255,255,0.5);
+  transform: scale(1.04);
+}
+
+.contract-card[data-tier="5"] {
+  border: 2px solid rgba(0, 150, 136, 0.2);
+}
+
+/* Tier 6 - Diamond Aura */
+.contract-card[data-tier="6"] {
+  background: linear-gradient(135deg, #E1F5FE 0%, #B3E5FC 100%);
+  box-shadow: 
+    0 8px 32px rgba(3, 169, 244, 0.4),
+    0 0 80px rgba(3, 169, 244, 0.2),
+    inset 0 2px 4px rgba(255,255,255,0.6);
+  transform: scale(1.06);
+  border: 3px solid rgba(3, 169, 244, 0.3);
+}
+
+.contract-card[data-tier="6"]::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(3, 169, 244, 0.4) 0deg,
+    transparent 60deg,
+    transparent 300deg,
+    rgba(3, 169, 244, 0.4) 360deg
+  );
+  border-radius: inherit;
+  animation: diamondSpin 4s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes diamondSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.contract-card[data-tier="6"]::after {
+  content: '💎';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 20px;
+  animation: diamondFloat 3s ease-in-out infinite;
+  filter: drop-shadow(0 2px 4px rgba(3, 169, 244, 0.4));
+}
+
+@keyframes diamondFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(10deg); }
+}
+
+/* Active contract glow */
+.contract-card.active {
+  animation: contractActive 2s ease-in-out infinite;
+}
+
+@keyframes contractActive {
+  0%, 100% { box-shadow: inherit; }
+  50% { 
+    filter: brightness(1.05);
+    box-shadow: inherit, 0 0 30px currentColor;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PSYCHOLOGICAL FEEDBACK - GUILT & RELIEF
+   ═══════════════════════════════════════════════════════════ */
+
+/* Burn Day Guilt - Empty, Cold */
+.dashboard.burn-occurred {
+  position: relative;
+}
+
+.dashboard.burn-occurred::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(244, 67, 54, 0.1) 0%, transparent 70%);
+  animation: burnVignette 3s ease-out forwards;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+@keyframes burnVignette {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.burn-indicator {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 6px 12px;
+  background: rgba(244, 67, 54, 0.9);
+  color: white;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+  animation: burnBadgePulse 1s ease-in-out 3;
+}
+
+@keyframes burnBadgePulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+/* Shield Protection Relief - Warm Glow */
+.shield-saved-indicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  padding: 24px 32px;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.95) 0%, rgba(102, 187, 106, 0.95) 100%);
+  color: white;
+  border-radius: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 
+    0 8px 32px rgba(76, 175, 80, 0.5),
+    0 0 80px rgba(76, 175, 80, 0.3);
+  z-index: 10000;
+  animation: shieldSavedAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.shield-saved-indicator::before {
+  content: '🛡️';
+  display: block;
+  font-size: 48px;
+  margin-bottom: 12px;
+  animation: shieldBounce 0.6s ease-out;
+}
+
+@keyframes shieldSavedAppear {
+  0% { transform: translate(-50%, -50%) scale(0) rotate(-180deg); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes shieldBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Daily Return Incentive - Countdown Urgency */
+.claim-countdown {
+  position: relative;
+  font-variant-numeric: tabular-nums;
+}
+
+.claim-countdown.urgent {
+  color: #FF5722;
+  animation: urgentBlink 1s ease-in-out infinite;
+}
+
+@keyframes urgentBlink {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0.6; }
+}
+
+.claim-countdown.urgent::after {
+  content: '⚠️';
+  margin-left: 8px;
+  animation: warningPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes warningPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+/* Success Celebration - Reward Dopamine */
+.claim-success-burst {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 300px;
+  height: 300px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 10000;
+}
+
+.claim-success-burst::before,
+.claim-success-burst::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(76, 175, 80, 0.3) 0%, transparent 70%);
+  animation: successBurst 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.claim-success-burst::after {
+  animation-delay: 0.1s;
+}
+
+@keyframes successBurst {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+/* Balance Count-Up Animation */
+.balance-value {
+  display: inline-block;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.balance-value.updating {
+  animation: balanceUpdate 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes balanceUpdate {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); color: #4CAF50; }
+  100% { transform: scale(1); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PERFORMANCE OPTIMIZATIONS
+   ═══════════════════════════════════════════════════════════ */
+
+/* GPU acceleration for animated elements */
+.market-card,
+.claim-button,
+.contract-card {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .contract-card[data-tier="6"]::before {
+    animation-duration: 6s; /* Slower on mobile */
+  }
+  
+  .claim-button.ready {
+    animation-duration: 3s; /* Less aggressive pulse */
+  }
+}
