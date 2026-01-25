@@ -1,194 +1,456 @@
-// SYSTEM
-const SYSTEM_STATES = { LOADING: 'LOADING', ACTIVE: 'ACTIVE', FROZEN: 'FROZEN', CLAIMED: 'CLAIMED' };
-const MockDB = {
-    key: 'gd_master_v8_0',
-    getDefaults() { return { balance: 0, lastClaimDate: null, isSundayOverride: false, contractStartDate: new Date().toISOString(), tier: 1, shieldCards: 0, totalClaimed: 0, hasLoyalty: false }; },
-    get() { const s = localStorage.getItem(this.key); return s ? { ...this.getDefaults(), ...JSON.parse(s) } : this.getDefaults(); },
-    save(d) { localStorage.setItem(this.key, JSON.stringify(d)); }
-};
+/* =========================================================
+   Global Deposit – Polished Master (V16.0)
+   - Stale Claim Auto-Reset
+   - Full Localization (Toasts, History)
+   - Console Security Guards
+   - Multi-Tab & Live Market
+========================================================= */
 
-// ONBOARDING
-const Onboarding = {
-    key: 'gd_onboarding_v8',
-    init() {
-        const hasSeen = localStorage.getItem(this.key);
-        const overlay = document.getElementById('onboarding-overlay');
-        if (!hasSeen) {
-            overlay.classList.remove('hidden');
-            document.querySelector('.main-content').classList.add('dashboard-hidden');
-            document.getElementById('onboarding-accept').onclick = () => {
-                localStorage.setItem(this.key, 'true');
-                overlay.classList.add('hidden');
-                document.querySelector('.main-content').classList.remove('dashboard-hidden');
-                document.querySelector('.main-content').classList.add('dashboard-revealed');
-                // Set initial balance
-                const db = MockDB.get();
-                if(db.balance === 0) { db.balance = 25.00; MockDB.save(db); location.reload(); }
-            };
-            return true;
+(() => {
+    const STORAGE_KEY = "gd_polished_v16";
+    const HISTORY_KEY = "gd_history_v5";
+    const SECRET_SALT = "GD_SECURE_2026";
+    const CLAIM_PROCESS_TIME = 60;
+    const REWARD_AMOUNT = 2.50;
+    const DAY_MS = 24 * 60 * 60 * 1000;
+  
+    /* --- 1. CONFIG & LANGS --- */
+    const LANGS = {
+      en: {
+        dir: "ltr",
+        home: "Dashboard", wallet: "Wallet", teamTitle: "Team", activity: "Activity", langTitle: "Language",
+        balance: "Total Asset Value", claim: "CLAIM REWARD",
+        activityTitle: "Transaction History",
+        walletTitle: "My Wallet", withdrawAddress: "Wallet Address (TRC20)", withdrawAmount: "Amount", confirm: "WITHDRAW",
+        refLabel: "Your Invite Link", members: "Members", commissions: "Earned",
+        waitMsg: "Verifying liquidity pool connection...", dontClose: "Do not close this window",
+        sunday: "MARKET CLOSED (SUNDAY)", wait: "COME BACK TOMORROW", cooldown: "PROCESSING...",
+        ready: "CLAIM AVAILABLE", locked: "SUNDAY LOCK",
+        securityAlert: "⚠️ Action blocked: Please reload.",
+        multiTab: "Session active in another tab.", useHere: "USE HERE",
+        emptyHist: "No transactions yet.",
+        histClaimTitle: "Daily Reward",
+        toastSuccess: "Reward Claimed Successfully",
+        toastLink: "Link Copied!",
+        toastErrSun: "Market Closed on Sunday",
+        toastErrCool: "Cooldown Active",
+        phases: ["Connecting to Binance Node...", "Verifying Smart Contract...", "Securing Transaction...", "Finalizing Deposit..."]
+      },
+      ar: {
+        dir: "rtl",
+        home: "لوحة التحكم", wallet: "المحفظة", teamTitle: "الفريق", activity: "السجل", langTitle: "اللغة",
+        balance: "إجمالي قيمة الأصول", claim: "سحب الأرباح",
+        activityTitle: "سجل المعاملات",
+        walletTitle: "محفظتي", withdrawAddress: "عنوان المحفظة (TRC20)", withdrawAmount: "الكمية", confirm: "تأكيد السحب",
+        refLabel: "رابط الدعوة", members: "أعضاء", commissions: "أرباح",
+        waitMsg: "جاري التحقق من سيولة العقد الذكي...", dontClose: "لا تغلق هذه النافذة",
+        sunday: "السوق مغلق (الأحد)", wait: "عد غداً", cooldown: "جارِ المعالجة...",
+        ready: "المطالبة متاحة الآن", locked: "قفل الأحد",
+        securityAlert: "⚠️ تم منع الإجراء: يرجى تحديث الصفحة.",
+        multiTab: "الجلسة نشطة في صفحة أخرى.", useHere: "استخدم هنا",
+        emptyHist: "لا توجد معاملات بعد.",
+        histClaimTitle: "مكافأة يومية",
+        toastSuccess: "تم استلام المكافأة بنجاح",
+        toastLink: "تم نسخ الرابط!",
+        toastErrSun: "السوق مغلق يوم الأحد",
+        toastErrCool: "فترة الانتظار نشطة",
+        phases: ["جاري الاتصال بـ Binance...", "التحقق من العقد الذكي...", "تأمين المعاملة...", "إيداع الأرباح..."]
+      },
+      fr: {
+        dir: "ltr",
+        home: "Tableau de bord", wallet: "Portefeuille", teamTitle: "Équipe", activity: "Activité", langTitle: "Langue",
+        balance: "Valeur Totale", claim: "RÉCLAMER",
+        activityTitle: "Historique",
+        walletTitle: "Mon Portefeuille", withdrawAddress: "Adresse (TRC20)", withdrawAmount: "Montant", confirm: "RETRAIT",
+        refLabel: "Votre Lien", members: "Membres", commissions: "Gains",
+        waitMsg: "Veuillez patienter...", dontClose: "Ne fermez pas",
+        sunday: "MARCHÉ FERMÉ", wait: "REVENEZ DEMAIN", cooldown: "TRAITEMENT...",
+        ready: "RÉCLAMATION DISPONIBLE", locked: "FERMÉ",
+        securityAlert: "⚠️ Action bloquée.",
+        multiTab: "Session active ailleurs.", useHere: "UTILISER ICI",
+        emptyHist: "Aucune transaction.",
+        histClaimTitle: "Récompense Quotidienne",
+        toastSuccess: "Récompense reçue avec succès",
+        toastLink: "Lien copié !",
+        toastErrSun: "Marché fermé dimanche",
+        toastErrCool: "Période d'attente active",
+        phases: ["Connexion à Binance...", "Vérification du contrat...", "Sécurisation...", "Finalisation..."]
+      }
+    };
+  
+    /* --- 2. SESSION MANAGER --- */
+    const sessionChannel = new BroadcastChannel('gd_session_v5');
+    let isLeader = false;
+    let heartbeatTimer;
+    let deadCheckTimer;
+    let lastHeartbeat = 0;
+  
+    function initSession() {
+      const now = Date.now();
+      const lastActive = parseInt(localStorage.getItem('gd_last_active') || 0);
+  
+      if (now - lastActive > 2000) {
+        becomeLeader();
+      } else {
+        becomeFollower();
+      }
+  
+      sessionChannel.onmessage = (e) => {
+        if (e.data === 'HEARTBEAT') {
+          if (!isLeader) lastHeartbeat = Date.now();
+        } else if (e.data === 'FORCE_TAKEOVER') {
+          if (isLeader) becomeFollower();
         }
-        return false;
+      };
     }
-};
-
-// CONTROLLERS
-const SidebarController = {
-    init() {
-        const s = document.getElementById('sidebar'), b = document.getElementById('backdrop'), t = document.getElementById('menu-toggle'), c = document.getElementById('sidebar-close');
-        const open = () => { s.classList.add('open'); b.classList.add('visible'); document.body.classList.add('menu-open'); };
-        const close = () => { s.classList.remove('open'); b.classList.remove('visible'); document.body.classList.remove('menu-open'); };
-        if(t) t.onclick = open; if(c) c.onclick = close; if(b) b.onclick = close;
+  
+    function becomeLeader() {
+      isLeader = true;
+      document.getElementById('multiTabWarning').classList.add('hidden');
+      document.querySelector('.app').style.opacity = '1';
+      document.querySelector('.app').style.pointerEvents = 'auto';
+  
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = setInterval(() => {
+        sessionChannel.postMessage('HEARTBEAT');
+        localStorage.setItem('gd_last_active', Date.now());
+      }, 1000);
+      
+      if (deadCheckTimer) clearInterval(deadCheckTimer);
     }
-};
-
-const SalaryEngine = {
-    tiers: { 1: { name: 'Intern', price: 25, booster: 0.00 }, 4: { name: 'Expert', price: 250, booster: 0.30 }, 6: { name: 'Partner', price: 1000, booster: 0.50 } },
-    phases: { 1: { baseRate: 2.2 }, 2: { baseRate: 2.6 }, 3: { baseRate: 3.4 } },
-    isSunday(db) { return db.isSundayOverride || new Date().getDay() === 0; },
-    getContractDay(db) { if (!db.contractStartDate) return 1; const diff = new Date() - new Date(db.contractStartDate); return Math.max(1, Math.floor(diff / 86400000) + 1); },
-    getCurrentPhase(day) { return day <= 20 ? 1 : day <= 40 ? 2 : 3; },
-    getDailyRate(db) { const t = this.tiers[db.tier]||this.tiers[1], d = this.getContractDay(db), p = this.getCurrentPhase(d); return this.phases[p].baseRate + t.booster; },
-    calculateDailyProfit(db) { if (this.isSunday(db)) return 0; const t = this.tiers[db.tier]||this.tiers[1]; return t.price * (this.getDailyRate(db) / 100); },
-    hasClaimedToday(db) { if (!db.lastClaimDate) return false; return new Date(db.lastClaimDate).toDateString() === new Date().toDateString(); },
-    rollForShieldCard() { return Math.random() < 0.30; }
-};
-
-const RetentionProtocol = {
-    check(db) {
-        if (SalaryEngine.getContractDay(db) > 60) {
-            document.getElementById('retention-modal').style.display = 'flex';
-            document.body.classList.add('state-frozen');
-            return true;
+  
+    function becomeFollower() {
+      isLeader = false;
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      
+      document.getElementById('multiTabWarning').classList.remove('hidden');
+      document.querySelector('.app').style.opacity = '0.3';
+      document.querySelector('.app').style.pointerEvents = 'none';
+  
+      lastHeartbeat = Date.now();
+      if (deadCheckTimer) clearInterval(deadCheckTimer);
+      deadCheckTimer = setInterval(() => {
+        if (Date.now() - lastHeartbeat > 3000) {
+          becomeLeader();
         }
-        return false;
-    },
-    renew() { const db = MockDB.get(); db.contractStartDate = new Date().toISOString(); db.hasLoyalty = true; MockDB.save(db); location.reload(); },
-    withdraw() { localStorage.removeItem(MockDB.key); localStorage.removeItem(Onboarding.key); location.reload(); }
-};
-
-const ProMarket = {
-    canvas: null, ctx: null, maxPoints: 80, intervalId: null, UPDATE_INTERVAL: 3000, SEED: 7749, BASE_PRICE: 620,
-    init() {
-        this.canvas = document.getElementById('market-canvas'); this.ctx = this.canvas.getContext('2d');
-        this.resize(); window.addEventListener('resize', () => this.resize());
-        this.draw(); this.start();
-    },
-    resize() { const r = this.canvas.getBoundingClientRect(); this.canvas.width = r.width * 2; this.canvas.height = r.height * 2; this.ctx.scale(2, 2); this.draw(); },
-    seededRandom(s) { const x = Math.sin(s) * 10000; return x - Math.floor(x); },
-    generatePrice(t) {
-        const db = MockDB.get(); if (SalaryEngine.isSunday(db)) return this.BASE_PRICE;
-        const b = Math.floor(t / this.UPDATE_INTERVAL), w1 = Math.sin(b * 0.08) * 8, w2 = Math.sin(b * 0.3 + 1.5) * 4, n = (this.seededRandom(b + this.SEED) - 0.5) * 3;
-        return this.BASE_PRICE + w1 + w2 + n;
-    },
-    draw() {
-        if (!this.ctx) return;
-        const db = MockDB.get(), isSunday = SalaryEngine.isSunday(db), w = this.canvas.width / 2, h = this.canvas.height / 2;
-        this.ctx.fillStyle = '#0a0b0d'; this.ctx.fillRect(0, 0, w, h);
-        const now = Date.now(), hist = []; for (let i = this.maxPoints - 1; i >= 0; i--) hist.push(this.generatePrice(now - (i * this.UPDATE_INTERVAL)));
-        const price = hist[hist.length - 1]; document.getElementById('market-price-text').innerText = price.toFixed(2);
-        const min = Math.min(...hist) - 2, max = Math.max(...hist) + 2, range = max - min || 1;
-        this.ctx.strokeStyle = 'rgba(255,255,255,0.03)'; this.ctx.lineWidth = 1;
-        for (let i = 1; i < 4; i++) { const y = (h / 4) * i; this.ctx.beginPath(); this.ctx.moveTo(0, y); this.ctx.lineTo(w, y); this.ctx.stroke(); }
-        this.ctx.beginPath(); this.ctx.lineWidth = 3; this.ctx.strokeStyle = isSunday ? '#4B5563' : '#089981'; this.ctx.shadowBlur = 10; this.ctx.shadowColor = this.ctx.strokeStyle;
-        const stepX = w / (this.maxPoints - 1);
-        hist.forEach((v, i) => { const x = i * stepX, y = h - ((v - min) / range) * h; if (i === 0) this.ctx.moveTo(x, y); else this.ctx.lineTo(x, y); });
-        this.ctx.stroke(); this.ctx.shadowBlur = 0;
-        const g = this.ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(8, 153, 129, 0.2)'); g.addColorStop(1, 'rgba(10, 11, 13, 0)');
-        this.ctx.lineTo((hist.length - 1) * stepX, h); this.ctx.lineTo(0, h); this.ctx.fillStyle = g; this.ctx.fill();
-    },
-    start() { this.intervalId = setInterval(() => this.draw(), 3000); }
-};
-
-const BalanceAnimator = {
-    animate(el, from, to) {
-        const start = performance.now(); el.classList.add('balance-updating');
-        const step = (t) => {
-            const p = Math.min((t - start) / 1500, 1), v = from + (to - from) * (1 - Math.pow(1 - p, 3));
-            el.textContent = '$' + v.toFixed(2);
-            if (p < 1) requestAnimationFrame(step); else { el.textContent = '$' + to.toFixed(2); el.classList.remove('balance-updating'); }
-        }; requestAnimationFrame(step);
+      }, 1000);
     }
-};
-
-const GodMode = {
-    tapCount: 0, tapTimeout: null,
-    init() {
-        const title = document.querySelector('.header-title');
-        if (title) {
-            const handler = (e) => { e.preventDefault(); this.handleTap(); };
-            title.addEventListener('click', handler); title.addEventListener('touchend', handler);
+  
+    document.getElementById('useHereBtn').onclick = () => {
+      sessionChannel.postMessage('FORCE_TAKEOVER');
+      becomeLeader();
+    };
+  
+    /* --- 3. SECURITY & UTILS --- */
+    function generateHash(data) {
+      const str = JSON.stringify(data) + SECRET_SALT;
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+      }
+      return hash.toString();
+    }
+  
+    function showToast(msg, type = 'error') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-circle-xmark' : 'fa-circle-check'}"></i> ${msg}`;
+      document.getElementById('toastContainer').appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+  
+    /* --- 4. STATE MANAGEMENT --- */
+    const defaultState = {
+      balance: 0.00,
+      lastClaim: 0,
+      lang: null,
+      refCode: Math.floor(100000 + Math.random() * 900000),
+      isClaiming: false,
+      claimStartTime: 0
+    };
+  
+    function getInitialLang() {
+      const b = navigator.language.slice(0, 2);
+      return ["ar", "fr"].includes(b) ? b : "en";
+    }
+  
+    function loadState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return { ...defaultState, lang: getInitialLang() };
+      try {
+        const parsed = JSON.parse(raw);
+        const h = parsed._hash;
+        delete parsed._hash;
+        if (generateHash(parsed) !== h) throw new Error("Tamper");
+        return parsed;
+      } catch (e) {
+        return { ...defaultState, lang: getInitialLang() };
+      }
+    }
+  
+    function saveState() {
+      const d = { ...state };
+      if(d._hash) delete d._hash;
+      d._hash = generateHash(d);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+    }
+    
+    let state = loadState();
+  
+    /* --- 5. UI ELEMENTS --- */
+    const el = {
+      balance: document.getElementById("balance"),
+      walletPageBalance: document.getElementById("walletPageBalance"),
+      claimBtn: document.getElementById("claimBtn"),
+      countdownDisplay: document.getElementById("countdownDisplay"),
+      bnbPrice: document.getElementById("bnbPrice"),
+      bnbChange: document.getElementById("bnbChange"),
+      menuBtn: document.getElementById("menuBtn"),
+      sidebar: document.getElementById("sidebar"),
+      overlay: document.getElementById("sidebarOverlay"),
+      menuItems: document.querySelectorAll(".menu-item"),
+      langBtns: document.querySelectorAll(".lang-btn"),
+      pages: document.querySelectorAll(".page-section"),
+      username: document.getElementById("usernameDisplay"),
+      welcomeScreen: document.getElementById("welcomeScreen"),
+      startBtn: document.getElementById("startBtn"),
+      claimOverlay: document.getElementById("claimOverlay"),
+      progressRing: document.getElementById("progressRing"),
+      timer: document.getElementById("timer"),
+      phaseText: document.getElementById("phaseText"),
+      refLink: document.getElementById("refLink"),
+      copyBtn: document.getElementById("copyBtn"),
+      historyList: document.getElementById("historyList")
+    };
+  
+    /* --- 6. CORE LOGIC --- */
+    const T = () => LANGS[state.lang];
+    const isSunday = () => new Date().getDay() === 0;
+    const now = () => Date.now();
+  
+    function updateUI() {
+      const txt = T();
+      document.documentElement.dir = txt.dir;
+      
+      document.querySelectorAll("[data-i18n]").forEach(e => {
+        if(txt[e.dataset.i18n]) e.textContent = txt[e.dataset.i18n];
+      });
+  
+      el.balance.textContent = `$${state.balance.toFixed(2)}`;
+      el.walletPageBalance.textContent = `$${state.balance.toFixed(2)}`;
+      el.refLink.value = `global-deposit.com/?ref=${state.refCode}`;
+      el.username.textContent = `User_${state.refCode}`;
+  
+      el.langBtns.forEach(btn => btn.classList.toggle("active", btn.dataset.lang === state.lang));
+  
+      if (state.isClaiming) {
+         el.claimBtn.disabled = true;
+         el.claimBtn.querySelector("span").textContent = txt.cooldown;
+      } else if (isSunday()) {
+        el.claimBtn.disabled = true;
+        el.claimBtn.querySelector("span").textContent = txt.sunday;
+        el.claimBtn.style.background = "#222";
+      } else if (now() - state.lastClaim < DAY_MS) {
+        el.claimBtn.disabled = true;
+        el.claimBtn.querySelector("span").textContent = txt.wait;
+        el.claimBtn.style.background = "#222";
+      } else {
+        el.claimBtn.disabled = false;
+        el.claimBtn.querySelector("span").textContent = txt.claim;
+        el.claimBtn.style.background = ""; 
+      }
+    }
+  
+    /* --- 7. COUNTDOWN & HISTORY --- */
+    function startCountdown() {
+      setInterval(() => {
+        const txt = T();
+        if (isSunday()) {
+          el.countdownDisplay.textContent = txt.locked;
+          el.countdownDisplay.className = "countdown-text locked";
+          return;
         }
-    },
-    handleTap() {
-        this.tapCount++; clearTimeout(this.tapTimeout);
-        if (this.tapCount >= 5) { this.tapCount = 0; this.open(); return; }
-        this.tapTimeout = setTimeout(() => { this.tapCount = 0; }, 2000);
-    },
-    open() { document.getElementById('god-mode').classList.add('active'); },
-    close() { document.getElementById('god-mode').classList.remove('active'); },
-    skipDay() { const db = MockDB.get(); const s = new Date(db.contractStartDate); s.setDate(s.getDate() - 1); db.contractStartDate = s.toISOString(); db.lastClaimDate = null; MockDB.save(db); location.reload(); },
-    jumpToRetention() { const db = MockDB.get(); const s = new Date(); s.setDate(s.getDate() - 60); db.contractStartDate = s.toISOString(); MockDB.save(db); location.reload(); },
-    toggleSunday() { const db = MockDB.get(); db.isSundayOverride = !db.isSundayOverride; MockDB.save(db); location.reload(); },
-    addBalance() { const db = MockDB.get(); db.balance += 100; MockDB.save(db); location.reload(); },
-    resetClaim() { const db = MockDB.get(); db.lastClaimDate = null; MockDB.save(db); location.reload(); },
-    factoryReset() { if(confirm('Factory Reset?')) { localStorage.removeItem(MockDB.key); localStorage.removeItem(Onboarding.key); location.reload(); } }
-};
-
-const Controller = {
-    async init() {
-        if(Onboarding.init()) return; 
-        const db = MockDB.get();
-        if (RetentionProtocol.check(db)) { GodMode.init(); return; }
-        UI.init(); SidebarController.init(); ProMarket.init(); GodMode.init();
-        UI.render(SYSTEM_STATES.LOADING, { balance: '---' });
-        await new Promise(r => setTimeout(r, 400));
-        const isSunday = SalaryEngine.isSunday(db), hasClaimed = SalaryEngine.hasClaimedToday(db);
-        let state = isSunday ? SYSTEM_STATES.FROZEN : (hasClaimed ? SYSTEM_STATES.CLAIMED : SYSTEM_STATES.ACTIVE);
-        this.currentState = state;
-        UI.render(state, {
-            balance: db.balance, tierName: SalaryEngine.tiers[db.tier]?.name || 'Intern',
-            contractDay: SalaryEngine.getContractDay(db), shieldCards: db.shieldCards,
-            dailyRate: SalaryEngine.getDailyRate(db), totalClaimed: db.totalClaimed, hasLoyalty: db.hasLoyalty
-        });
-        this.bindEvents();
-    },
-    bindEvents() { document.getElementById('claim-btn').onclick = () => this.handleClaim(); },
-    async handleClaim() {
-        if (this.currentState !== SYSTEM_STATES.ACTIVE) return;
-        UI.setClaimProcessing('Verifying...'); await new Promise(r => setTimeout(r, 1000));
-        UI.setClaimProcessing('Blockchain Sync...'); await new Promise(r => setTimeout(r, 1000));
-        const db = MockDB.get(); const reward = SalaryEngine.calculateDailyProfit(db); const oldBal = db.balance;
-        db.balance += reward; db.lastClaimDate = new Date().toISOString(); db.totalClaimed += reward;
-        let shield = false; if (SalaryEngine.rollForShieldCard() && !db.shieldCards) { db.shieldCards++; shield = true; }
-        MockDB.save(db);
-        BalanceAnimator.animate(document.getElementById('balance-display'), oldBal, db.balance);
-        Toast.show(`Reward: +$${reward.toFixed(2)}`);
-        if (shield) setTimeout(() => Toast.show('🛡️ Shield Acquired!', 'shield'), 2000);
-        this.currentState = SYSTEM_STATES.CLAIMED;
-        UI.render(SYSTEM_STATES.CLAIMED, { balance: db.balance, shieldCards: db.shieldCards, totalClaimed: db.totalClaimed, flashMarket: true });
+        
+        const diff = DAY_MS - (now() - state.lastClaim);
+        if (diff <= 0) {
+          el.countdownDisplay.textContent = txt.ready;
+          el.countdownDisplay.className = "countdown-text ready";
+        } else {
+          const h = Math.floor(diff / (1000 * 60 * 60));
+          const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const s = Math.floor((diff % (1000 * 60)) / 1000);
+          el.countdownDisplay.textContent = `${h}h ${m}m ${s}s`;
+          el.countdownDisplay.className = "countdown-text wait";
+        }
+      }, 1000);
     }
-};
-
-const UI = {
-    init() { 
-        this.els = { bal: document.getElementById('balance-display'), btn: document.getElementById('claim-btn'), tier: document.getElementById('tier-name'), day: document.getElementById('day-counter'), shield: document.getElementById('shield-indicator'), rate: document.getElementById('daily-rate'), total: document.getElementById('total-earned') }; 
-    },
-    render(state, data) {
-        document.body.classList.remove('state-frozen');
-        if (data.balance !== undefined) this.els.bal.textContent = '$' + parseFloat(data.balance).toFixed(2);
-        if (data.tierName) { this.els.tier.textContent = data.tierName + (data.hasLoyalty ? ' ⭐' : ''); SidebarController.updateTier(data.tierName); }
-        if (data.contractDay) this.els.day.textContent = `Day ${data.contractDay} of 60`;
-        if (data.dailyRate) this.els.rate.textContent = data.dailyRate.toFixed(2) + '%';
-        if (data.totalClaimed !== undefined) this.els.total.textContent = '$' + data.totalClaimed.toFixed(2);
-        if (data.shieldCards > 0) this.els.shield.classList.add('active');
-        if (state === SYSTEM_STATES.ACTIVE) { this.els.btn.disabled = false; this.els.btn.innerHTML = 'Claim Daily Reward'; this.els.btn.classList.remove('opacity-50'); }
-        else if (state === SYSTEM_STATES.CLAIMED) { this.els.btn.disabled = true; this.els.btn.innerHTML = 'Reward Claimed ✓'; this.els.btn.classList.add('opacity-50'); }
-        else if (state === SYSTEM_STATES.FROZEN) { this.els.btn.disabled = true; this.els.btn.innerHTML = 'Market Closed'; this.els.btn.classList.add('opacity-50'); document.body.classList.add('state-frozen'); }
-        if (data.flashMarket) document.getElementById('market-section').classList.add('market-flash');
-    },
-    setClaimProcessing(msg) { this.els.btn.disabled = true; this.els.btn.innerHTML = `<span class="animate-pulse">${msg}</span>`; }
-};
-
-const Toast = { show(msg, type='success') { const c = document.getElementById('toast-container'), t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg; c.appendChild(t); setTimeout(() => t.remove(), 3500); } };
-
-document.addEventListener('DOMContentLoaded', Controller.init.bind(Controller));
+  
+    function getHistory() { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }
+    
+    function addHistory(amount) {
+      const list = getHistory();
+      const entry = {
+        date: now(),
+        amount: amount,
+        tx: "0x" + Array.from({length: 20}, () => "0123456789abcdef"[Math.floor(Math.random()*16)]).join("") + "..."
+      };
+      list.unshift(entry);
+      if(list.length > 50) list.pop();
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+      renderHistory();
+    }
+  
+    function renderHistory() {
+      const list = getHistory();
+      const txt = T();
+      el.historyList.innerHTML = "";
+      
+      if(list.length === 0) {
+        el.historyList.innerHTML = `<div class="empty-state">${txt.emptyHist}</div>`;
+        return;
+      }
+      
+      list.forEach(item => {
+        const d = new Date(item.date).toLocaleString();
+        const card = document.createElement("div");
+        card.className = "history-card";
+        card.innerHTML = `
+          <div class="h-info"><h4>${txt.histClaimTitle}</h4><small>${d}</small><span class="tx-hash">${item.tx}</span></div>
+          <div class="h-amount">+$${item.amount.toFixed(2)}</div>
+        `;
+        el.historyList.appendChild(card);
+      });
+    }
+  
+    /* --- 8. CLAIM LOGIC --- */
+    el.claimBtn.onclick = () => {
+      if (el.claimBtn.disabled || !isLeader) return;
+      const txt = T();
+      
+      if (isSunday()) { showToast(txt.toastErrSun, 'error'); return; }
+      if (now() - state.lastClaim < DAY_MS) { showToast(txt.toastErrCool, 'error'); return; }
+  
+      state.isClaiming = true;
+      state.claimStartTime = now();
+      saveState();
+      resumeClaim();
+    };
+  
+    function resumeClaim() {
+      el.claimOverlay.classList.remove("hidden");
+      const circumference = 408;
+      const phases = T().phases;
+      
+      const tick = setInterval(() => {
+        const elapsed = Math.floor((now() - state.claimStartTime) / 1000);
+        const timeLeft = CLAIM_PROCESS_TIME - elapsed;
+  
+        el.timer.textContent = timeLeft > 0 ? timeLeft : 0;
+        const offset = circumference * (1 - (timeLeft / CLAIM_PROCESS_TIME));
+        el.progressRing.style.strokeDashoffset = -offset;
+  
+        const phaseIndex = Math.min(3, Math.floor(elapsed / 15));
+        el.phaseText.textContent = phases[phaseIndex];
+  
+        if (timeLeft <= 0) {
+          clearInterval(tick);
+          finishClaim();
+        }
+      }, 1000);
+    }
+  
+    function finishClaim() {
+      // SECURITY GUARD
+      if (!state.isClaiming || !isLeader || isSunday() || (now() - state.lastClaim < DAY_MS)) {
+         console.error("Blocked"); return;
+      }
+  
+      el.claimOverlay.classList.add("hidden");
+      
+      state.balance += REWARD_AMOUNT;
+      state.lastClaim = now();
+      state.isClaiming = false;
+      state.claimStartTime = 0;
+      saveState();
+      
+      addHistory(REWARD_AMOUNT);
+      updateUI();
+      showToast(T().toastSuccess, 'success');
+    }
+  
+    /* --- 9. INIT & EVENTS --- */
+    function init() {
+      initSession(); 
+      history.pushState(null, null, location.href);
+      window.onpopstate = () => history.pushState(null, null, location.href);
+  
+      // Stale Claim Check
+      if (state.isClaiming) {
+          const elapsed = now() - state.claimStartTime;
+          // If > 65s passed, reset (stale)
+          if (elapsed > (CLAIM_PROCESS_TIME * 1000 + 5000)) {
+              state.isClaiming = false;
+              state.claimStartTime = 0;
+              saveState();
+          } else {
+              resumeClaim();
+          }
+      }
+      
+      updateUI();
+      startCountdown();
+      renderHistory();
+      startMarketSimulation();
+  
+      // Event Listeners
+      el.menuBtn.onclick = () => { el.sidebar.classList.toggle("open"); el.overlay.classList.toggle("active"); };
+      el.overlay.onclick = () => { el.sidebar.classList.remove("open"); el.overlay.classList.remove("active"); };
+      
+      el.langBtns.forEach(btn => btn.onclick = () => { 
+          state.lang = btn.dataset.lang; 
+          saveState(); 
+          updateUI(); 
+          renderHistory(); // Re-render history to translate title
+      });
+      
+      el.menuItems.forEach(item => item.onclick = (e) => {
+        e.preventDefault();
+        document.querySelector(".menu-item.active").classList.remove("active");
+        item.classList.add("active");
+        document.querySelector(".page-section.active").classList.remove("active");
+        document.getElementById(`page-${item.dataset.page}`).classList.add("active");
+        el.sidebar.classList.remove("open");
+        el.overlay.classList.remove("active");
+      });
+  
+      if (!state.introShown) {
+        el.welcomeScreen.classList.remove("hidden");
+        el.startBtn.onclick = () => { state.introShown = true; saveState(); el.welcomeScreen.classList.add("hidden"); };
+      } else {
+        el.welcomeScreen.classList.add("hidden");
+      }
+      
+      el.copyBtn.onclick = () => { navigator.clipboard.writeText(el.refLink.value); showToast(T().toastLink, 'success'); };
+    }
+  
+    function startMarketSimulation() {
+      let price = 617.50;
+      setInterval(() => {
+        const change = (Math.random() - 0.5) * 0.3;
+        price += change;
+        const percent = (0.47 + (Math.random() - 0.5) * 0.1).toFixed(2);
+        el.bnbPrice.textContent = price.toFixed(2);
+        el.bnbChange.textContent = `${percent > 0 ? '+' : ''}${percent}%`;
+        if (change >= 0) {
+          el.bnbPrice.style.color = "#00ff88";
+          el.bnbChange.className = "change up";
+        } else {
+          el.bnbPrice.style.color = "#ff4444";
+          el.bnbChange.className = "change down";
+        }
+      }, 3000);
+    }
+  
+    init();
+  })();

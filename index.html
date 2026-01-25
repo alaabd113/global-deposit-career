@@ -1,124 +1,183 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Global Deposit | V8.0 Pro</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Global Deposit</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body>
-    
-    <div id="onboarding-overlay" class="onboarding-overlay hidden">
-        <div class="onboarding-card">
-            <div class="logo-container"><div class="orbit-trail"></div><i class="fas fa-globe-americas globe-icon"></i><div class="orbit-ring"><i class="fas fa-shield-alt shield-orbit"></i></div></div>
-            <h1 style="font-size:22px; font-weight:bold; color:white; margin-bottom:5px">Welcome to Global Deposit</h1>
-            <p style="color:#666; font-size:13px; margin-bottom:25px">Elite Career Investment System</p>
-            
-            <div class="term-item"><div class="term-icon"><i class="fas fa-file-contract"></i></div><div><div class="term-title">60-Day Cycle</div><div class="term-desc">Funds are locked for 60 operational days.</div></div></div>
-            <div class="term-item"><div class="term-icon"><i class="fas fa-moon"></i></div><div><div class="term-title">Sunday Protocol</div><div class="term-desc">Markets closed on Sundays (0% Yield).</div></div></div>
-            <div class="term-item"><div class="term-icon"><i class="fas fa-clock"></i></div><div><div class="term-title">Daily Claim</div><div class="term-desc">You must claim daily to secure rewards.</div></div></div>
-            
-            <button class="hero-btn" id="onboarding-accept" style="margin-top:15px">Accept & Start</button>
-        </div>
+
+  <div id="multiTabWarning" class="multitab-banner hidden">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span data-i18n="multiTab">Session active in another tab.</span>
+    <button id="useHereBtn" data-i18n="useHere">USE HERE</button>
+  </div>
+
+  <div id="welcomeScreen" class="intro-overlay">
+    <div class="intro-card">
+      <div class="intro-logo"><i class="fa-solid fa-earth-americas"></i></div>
+      <h2>Global Deposit</h2>
+      <p class="subtitle">Secure Investment System</p>
+      <div class="features-list">
+        <div class="f-item"><i class="fa-solid fa-shield-halved"></i> <span>Secure Protocol</span></div>
+        <div class="f-item"><i class="fa-solid fa-clock-rotate-left"></i> <span>Activity Log</span></div>
+        <div class="f-item"><i class="fa-solid fa-check-circle"></i> <span>Integrity Check</span></div>
+      </div>
+      <button id="startBtn" class="gold-btn">ACCESS DASHBOARD</button>
     </div>
+  </div>
 
-    <div class="backdrop" id="backdrop"></div>
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-logo"><i class="fas fa-shield-alt" style="color:#C5A059"></i> Global Deposit</div>
-            <button class="sidebar-close" id="sidebar-close"><i class="fas fa-times"></i></button>
-        </div>
-        <nav class="sidebar-nav">
-            <div class="nav-item active"><i class="fas fa-th-large"></i> Dashboard</div>
-            <div class="nav-item"><i class="fas fa-wallet"></i> Wallet</div>
-            <div class="nav-item"><i class="fas fa-chart-line"></i> Analytics</div>
-            <div class="nav-item"><i class="fas fa-user"></i> Profile</div>
-        </nav>
-        <div class="sidebar-footer">
-            <div class="user-card">
-                <div class="user-avatar">U</div>
-                <div class="user-info">
-                    <div class="user-name">User</div>
-                    <div class="user-tier" id="sidebar-tier">Intern</div>
-                </div>
-            </div>
-        </div>
-    </aside>
-
-    <header class="main-header">
-        <div class="header-left">
-            <div class="logo-container" style="width:30px; height:30px; margin:0"><i class="fas fa-globe-americas globe-icon" style="font-size:20px"></i></div>
-            <span class="header-title">Global Deposit</span>
-        </div>
-        <div class="header-right">
-            <div class="shield-badge" id="shield-indicator"><i class="fas fa-shield-alt"></i> Protected</div>
-            <button class="menu-toggle" id="menu-toggle"><i class="fas fa-bars"></i></button>
-        </div>
-    </header>
-
-    <main class="main-content">
-        <div class="pulse-card balance-card">
-            <div class="balance-label">Total Asset Value</div>
-            <div class="balance-value" id="balance-display">$0.00</div>
-            <div class="balance-meta">
-                <div class="meta-item"><i class="fas fa-layer-group"></i><span id="tier-name">Intern</span></div>
-                <div class="meta-item"><i class="fas fa-clock"></i><span id="day-counter">Day 1 / 60</span></div>
-            </div>
-        </div>
-
-        <button class="hero-btn" id="claim-btn">Claim Daily Reward</button>
-
-        <div class="pulse-card" id="market-section">
-            <div class="market-top-bar">
-                <div class="coin-info">
-                    <div class="coin-icon"><i class="fas fa-cube"></i></div>
-                    <div><h3 style="color:#fff; font-weight:bold">BNB / USDT</h3><p style="color:#777; font-size:11px">Binance Smart Chain</p></div>
-                </div>
-                <div class="market-price-box">
-                    <div class="market-price" id="market-price-text">624.50</div>
-                </div>
-            </div>
-            <div class="timeframes"><div class="tf-btn">1H</div><div class="tf-btn active">1D</div><div class="tf-btn">1W</div></div>
-            <canvas id="market-canvas"></canvas>
-        </div>
-        
-        <div class="stats-grid">
-            <div class="pulse-card stat-card"><div class="stat-label">Daily Yield</div><div class="stat-value gold" id="daily-rate">2.20%</div></div>
-            <div class="pulse-card stat-card"><div class="stat-label">Total Profit</div><div class="stat-value green" id="total-earned">$0.00</div></div>
-        </div>
-        <div class="version-tag">V8.0 FINAL</div>
-    </main>
-
-    <div class="toast-container" id="toast-container"></div>
-
-    <div id="retention-modal" class="retention-overlay">
-        <div class="retention-card">
-            <i class="fas fa-flag-checkered text-5xl text-[#C5A059] mb-4"></i>
-            <h2 class="text-2xl font-bold text-white mb-2">CONTRACT COMPLETE</h2>
-            <p class="text-gray-400 text-sm mb-6">60-Day Cycle Finished.</p>
-            <div class="flex flex-col gap-3">
-                <button onclick="RetentionProtocol.renew()" class="hero-btn">Renew</button>
-                <button onclick="RetentionProtocol.withdraw()" class="p-3 rounded-xl border border-white/20 text-gray-400">Withdraw</button>
-            </div>
-        </div>
+  <header class="app-header">
+    <div class="brand-logo">
+      <div class="shield-container">
+        <div class="shield-ring"></div>
+        <i class="fa-solid fa-earth-americas globe-icon"></i>
+      </div>
+      <span class="app-name">Global Deposit</span>
     </div>
+    <button id="menuBtn" class="menu-btn"><i class="fa-solid fa-bars"></i></button>
+  </header>
 
-    <div id="god-mode" class="god-mode-overlay">
-        <div class="god-mode-card">
-            <h3 style="color:#ff4444; margin-bottom:15px; font-weight:bold">GOD MODE</h3>
-            <button class="god-btn" onclick="GodMode.skipDay()">Skip +1 Day</button>
-            <button class="god-btn" onclick="GodMode.jumpToRetention()">Jump to Day 60</button>
-            <button class="god-btn" onclick="GodMode.toggleSunday()">Toggle Sunday</button>
-            <button class="god-btn" onclick="GodMode.addBalance()">Add $100</button>
-            <button class="god-btn" onclick="GodMode.resetClaim()">Reset Claim</button>
-            <button class="god-btn danger" onclick="GodMode.factoryReset()">Factory Reset</button>
-            <button class="god-btn" onclick="GodMode.close()" style="text-align:center; margin-top:10px">CLOSE</button>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="user-profile">
+        <div class="avatar"><i class="fa-solid fa-user-tie"></i></div>
+        <div class="u-text">
+          <h3 id="usernameDisplay">Investor</h3>
+          <span class="status">● Connected</span>
         </div>
+      </div>
     </div>
+    <nav class="sidebar-menu">
+      <a href="#" class="menu-item active" data-page="home"><i class="fa-solid fa-chart-line"></i> <span data-i18n="home">Dashboard</span></a>
+      <a href="#" class="menu-item" data-page="wallet"><i class="fa-solid fa-wallet"></i> <span data-i18n="wallet">Wallet</span></a>
+      <a href="#" class="menu-item" data-page="activity"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="activity">Activity</span></a>
+      <a href="#" class="menu-item" data-page="team"><i class="fa-solid fa-users"></i> <span data-i18n="teamTitle">Team</span></a>
+    </nav>
+    <div class="lang-section">
+      <h4 data-i18n="langTitle">Language</h4>
+      <div class="lang-options">
+        <button class="lang-btn" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="ar">AR</button>
+        <button class="lang-btn" data-lang="fr">FR</button>
+      </div>
+    </div>
+  </aside>
 
-    <script src="js/app.js"></script>
+  <main class="app">
+    <section id="page-home" class="page-section active">
+      <div class="balance-container">
+        <span class="label" data-i18n="balance">Total Asset Value</span>
+        <h1 class="main-balance" id="balance">$0.00</h1>
+        <div class="tags">
+          <span class="tag gold"><i class="fa-solid fa-layer-group"></i> Intern</span>
+          <span class="tag"><i class="fa-regular fa-clock"></i> Day 1 / 60</span>
+        </div>
+      </div>
+      <div id="countdownDisplay" class="countdown-text">--:--:--</div>
+      <button id="claimBtn" class="hero-btn">
+        <span data-i18n="claim">CLAIM REWARD</span>
+      </button>
+      <div class="market-card">
+        <div class="m-header">
+          <div class="coin-pair">
+            <div class="icon-bg"><i class="fa-brands fa-hive"></i></div>
+            <div class="pair-text"><h3>BNB / USDT</h3><span>Binance Smart Chain</span></div>
+          </div>
+          <div class="live-price">
+            <span id="bnbPrice">617.50</span>
+            <span id="bnbChange" class="change up">+0.47%</span>
+          </div>
+        </div>
+        <div class="chart-area">
+          <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+            <path d="M0,35 Q10,32 20,35 T40,25 T60,30 T80,15 T100,5" fill="none" stroke="#00ff88" stroke-width="2"/>
+            <path d="M0,35 Q10,32 20,35 T40,25 T60,30 T80,15 T100,5 V40 H0 Z" fill="rgba(0, 255, 136, 0.15)" stroke="none"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-wallet" class="page-section hidden">
+      <h2 data-i18n="walletTitle">My Wallet</h2>
+      <div class="wallet-box">
+        <div class="wb-header"><span>USDT (TRC20)</span><i class="fa-solid fa-wallet"></i></div>
+        <h2 id="walletPageBalance">$0.00</h2>
+      </div>
+      <div class="withdraw-area">
+        <label data-i18n="withdrawAddress">Wallet Address</label>
+        <input type="text" placeholder="Trx..." class="dark-input">
+        <label data-i18n="withdrawAmount">Amount</label>
+        <input type="number" placeholder="0.00" class="dark-input">
+        <button class="action-btn" data-i18n="confirm">WITHDRAW</button>
+      </div>
+    </section>
+
+    <section id="page-activity" class="page-section hidden">
+      <h2 data-i18n="activityTitle">Transaction History</h2>
+      <div id="historyList" class="history-list">
+        <div class="empty-state" data-i18n="emptyHist">No transactions yet.</div>
+      </div>
+    </section>
+
+    <section id="page-team" class="page-section hidden">
+      <div class="team-box">
+        <h3 data-i18n="teamTitle">Team & Earn</h3>
+        <p class="comm-text">10% Direct Commission</p>
+        <div class="link-box">
+          <span data-i18n="refLabel">Your Link:</span>
+          <div class="copy-row">
+            <input type="text" id="refLink" readonly>
+            <button id="copyBtn"><i class="fa-regular fa-copy"></i></button>
+          </div>
+        </div>
+        <div class="stats-row">
+          <div class="s-card"><span id="teamCount">0</span><small data-i18n="members">Members</small></div>
+          <div class="s-card"><span id="teamEarnings">$0.00</span><small data-i18n="commissions">Earned</small></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="claimOverlay" class="overlay hidden">
+    <div class="claim-card">
+      <div class="timer-container">
+        <div class="timer-glow-effect"></div>
+        <svg class="timer-svg" width="140" height="140" viewBox="0 0 140 140">
+          <circle class="timer-track" cx="70" cy="70" r="65"></circle>
+          <circle id="progressRing" class="timer-progress" cx="70" cy="70" r="65"></circle>
+        </svg>
+        <div class="timer-value" id="timer">60</div>
+      </div>
+      <div class="status-content">
+        <h3 id="phaseText" class="status-phase">Connecting...</h3>
+        <p class="status-details" data-i18n="waitMsg">Verifying liquidity pool connection...</p>
+      </div>
+      <div class="graph-wrapper">
+        <svg class="market-graph" viewBox="0 0 100 30" preserveAspectRatio="none">
+          <path class="graph-path" d="M0,25 Q10,22 20,25 T40,15 T60,20 T80,5 T100,10" />
+          <defs>
+            <linearGradient id="graphGradient" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="rgba(0, 255, 136, 0.2)" />
+              <stop offset="100%" stop-color="rgba(0, 255, 136, 0)" />
+            </linearGradient>
+          </defs>
+          <path class="graph-fill" d="M0,25 Q10,22 20,25 T40,15 T60,20 T80,5 T100,10 V30 H0 Z" fill="url(#graphGradient)" />
+        </svg>
+      </div>
+      <div class="warning-badge">
+        <span class="pulse-dot"></span>
+        <span data-i18n="dontClose">Do not close this window</span>
+      </div>
+    </div>
+  </div>
+  
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="js/app.js"></script>
 </body>
 </html>
