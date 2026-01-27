@@ -1,2898 +1,1143 @@
-/* =========================================================
-   NexCareer – Premium HIGH-END FINTECH Edition (V23.0)
-   
-   CORE BUSINESS LOGIC (Constitution V7.1):
-   
-   =========================================================
-   CAREER CONTRACT ENGINE
-   =========================================================
-   TIERS & BASE DAILY RATES (Phase 1 – Days 1–20):
-   - Tier 1 ($25):   2.20% daily
-   - Tier 2 ($50):   2.30% daily
-   - Tier 3 ($100):  2.40% daily
-   - Tier 4 ($250):  2.50% daily
-   - Tier 5 ($500):  2.60% daily
-   - Tier 6 ($1000): 2.70% daily
-   
-   AUTOMATIC PHASE BOOSTERS:
-   - Phase 2 (Day 21–40): +0.40% added to base rate
-   - Phase 3 (Day 41–60): +0.80% added to base rate
-   
-   CORE RULES:
-   - Contract duration: 60 days (capital fully LOCKED)
-   - Maximum: 1 active contract per Tier at the same time
-   - Currency label must always be: USDT (BEP20)
-   
-   =========================================================
-   SUNDAY LAW (ZERO PROFIT RULE)
-   =========================================================
-   - Sundays (Day 0): Daily yield = 0.00%
-   - Dashboard must display: "Sunday Lock 🔒"
-   - Claim button must be DISABLED
-   - Sundays MUST NOT generate profit
-   - Sundays MUST NOT count toward burn penalties
-   
-   =========================================================
-   CLAIM, BURN & WALLET LOGIC
-   =========================================================
-   CLAIM RULE:
-   - User must press "CLAIM" once every 24 hours
-   - On claim: Add calculated dailyProfit to wallet balance
-   - Update total earned and lastClaimTime
-   
-   BURN RULE:
-   - If (currentTime - lastClaimTime) > 48 hours:
-     - Missed day's profit is BURNED (lost permanently)
-   - Exception: Sundays do NOT count toward burn timing
-   
-   =========================================================
-   PERSISTENCE (LOCAL STORAGE)
-   =========================================================
-   - Single Source of Truth: `gd_core_data_v21`
-   - Structure:
-     {
-       balance: Float (wallet balance),
-       totalEarned: Float,
-       lastClaim: Timestamp,
-       activeContracts: Array of contract objects
-         {
-           tier: Number (25, 50, 100, 250, 500, 1000),
-           amount: Float,
-           startDate: Timestamp,
-           lastProcessedDay: Number (1-60)
-         }
-     }
-========================================================= */
+// ═══════════════════════════════════════════════════════════
+// NEXCAREER V7.1 - FULL SYSTEM IMPLEMENTATION
+// Constitution-Compliant Engine
+// ═══════════════════════════════════════════════════════════
 
-(() => {
-    // =========================================================
-    // STORAGE & CONSTANTS
-    // =========================================================
-    const CORE_DATA_KEY = "gd_core_data_v21"; // Single source of truth
-    const STORAGE_KEY = "gd_premium_v20"; // Legacy state (keep for compatibility)
-    const HISTORY_KEY = "gd_history_v7";
-    const SECRET_SALT = "GD_SECURE_2026";
-    const CLAIM_PROCESS_TIME = 60;
-    const DAY_MS = 24 * 60 * 60 * 1000;
-    const BURN_THRESHOLD_MS = 48 * 60 * 60 * 1000; // 48 hours
-    
-    // =========================================================
-    // CAREER CONTRACT ENGINE CONSTANTS
-    // =========================================================
-    const CONTRACT_DURATION_DAYS = 60;
-    const INVESTMENT_TIERS = [25, 50, 100, 250, 500, 1000]; // USDT amounts
-    
-    // Base daily rates for Phase 1 (Days 1-20)
-    const TIER_BASE_RATES = {
-        25: 0.0220,   // 2.20%
-        50: 0.0230,   // 2.30%
-        100: 0.0240,  // 2.40%
-        250: 0.0250,  // 2.50%
-        500: 0.0260,  // 2.60%
-        1000: 0.0270  // 2.70%
-    };
-    
-    // Phase boosters
-    const PHASE_2_BOOST = 0.0040; // +0.40% for Days 21-40
-    const PHASE_3_BOOST = 0.0080; // +0.80% for Days 41-60
-    
-    // =========================================================
-    // CONSTITUTION: Business Rules
-    // =========================================================
-    const REFERRAL_COMMISSION_RATE = 0.30; // 30% Commission on daily yield
-    
-    // Withdrawal Fee Structure
-    const WITHDRAWAL_FEES = {
-        lowTierFlat: 1.00,      // $1 fixed fee for $5-$15
-        lowTierPercent: 0.05,   // 5% for $5-$15
-        highTierPercent: 0.08,  // 8% for above $15
-        fridayPenalty: 0.05,    // +5% extra on Fridays
-        threshold: 15           // $15 threshold
-    };
-    
-    // Calculate withdrawal fee based on amount and day
-    function calculateWithdrawalFee(amount) {
-        if (amount < 5) return 0;
-        
-        let fee = 0;
-        const isFriday = new Date().getDay() === 5;
-        
-        if (amount <= WITHDRAWAL_FEES.threshold) {
-            fee = WITHDRAWAL_FEES.lowTierFlat + (amount * WITHDRAWAL_FEES.lowTierPercent);
-        } else {
-            fee = amount * WITHDRAWAL_FEES.highTierPercent;
-        }
-        
-        if (isFriday) {
-            fee += amount * WITHDRAWAL_FEES.fridayPenalty;
-        }
-        
-        return fee;
+const STORAGE_KEY = 'nexcareer_data_v71';
+const ADMIN_STORAGE_KEY = 'nexcareer_admin_v71';
+
+// ═══════════════════════════════════════════════════════════
+// TRANSLATIONS
+// ═══════════════════════════════════════════════════════════
+
+const TRANSLATIONS = {
+    ar: {
+        selectLanguage: 'اختر اللغة',
+        totalBalance: 'الرصيد الإجمالي',
+        totalEarned: 'إجمالي الأرباح',
+        claimReward: 'استلام المكافأة',
+        liveMarket: 'السوق الحي',
+        active: 'نشط',
+        dailyProfit: 'الربح اليومي',
+        activeContracts: 'العقود النشطة',
+        careerPlans: 'خطط المسار المهني',
+        intern: 'متدرب',
+        junior: 'مبتدئ',
+        pro: 'محترف',
+        expert: 'خبير',
+        manager: 'مدير',
+        partner: 'شريك',
+        dailyReturn: 'عائد يومي',
+        endBonus: 'مكافأة نهاية الخدمة',
+        duration: 'المدة',
+        activate: 'تفعيل',
+        locked: 'مقفل',
+        wallet: 'المحفظة',
+        availableBalance: 'الرصيد المتاح',
+        withdraw: 'سحب',
+        network: 'الشبكة',
+        minWithdraw: 'الحد الأدنى',
+        processingTime: 'وقت المعالجة',
+        team: 'الفريق',
+        yourCode: 'كود الإحالة الخاص بك',
+        teamMembers: 'أعضاء الفريق',
+        teamEarnings: 'أرباح الفريق',
+        home: 'الرئيسية',
+        invest: 'استثمار',
+        careerContract: 'عقد المسار المهني',
+        contractTerms: 'شروط العقد',
+        workMechanism: 'آلية العمل',
+        agreeToTerms: 'أوافق على الشروط والأحكام',
+        acceptAndSubscribe: 'الموافقة والاشتراك',
+        decline: 'رفض',
+        processingDeal: 'جارٍ الحصول على صفقة...',
+        verifyingSession: 'التحقق من الجلسة...',
+        processingTransaction: 'معالجة المعاملة على الشبكة...',
+        finalizingReward: 'إنهاء المكافأة...',
+        seconds: 'ثانية',
+        luckyTask: 'مهمة محظوظة!',
+        taskDescription: 'تفاعل مع القناة ادعم المحتوى بالتعليق والمشاركة',
+        uploadScreenshot: 'ارفع لقطة شاشة التفاعل',
+        submitTask: 'إرسال المهمة',
+        cancel: 'إلغاء',
+        sundayLock: 'إغلاق الأحد 🔒',
+        marketHoliday: 'عطلة السوق - درع الحماية مفعل'
+    },
+    en: {
+        selectLanguage: 'Select Language',
+        totalBalance: 'Total Balance',
+        totalEarned: 'Total Earned',
+        claimReward: 'Claim Reward',
+        liveMarket: 'Live Market',
+        active: 'Active',
+        dailyProfit: 'Daily Profit',
+        activeContracts: 'Active Contracts',
+        careerPlans: 'Career Plans',
+        intern: 'Intern',
+        junior: 'Junior',
+        pro: 'Pro',
+        expert: 'Expert',
+        manager: 'Manager',
+        partner: 'Partner',
+        dailyReturn: 'Daily Return',
+        endBonus: 'End Bonus',
+        duration: 'Duration',
+        activate: 'Activate',
+        locked: 'Locked',
+        wallet: 'Wallet',
+        availableBalance: 'Available Balance',
+        withdraw: 'Withdraw',
+        network: 'Network',
+        minWithdraw: 'Minimum',
+        processingTime: 'Processing Time',
+        team: 'Team',
+        yourCode: 'Your Referral Code',
+        teamMembers: 'Team Members',
+        teamEarnings: 'Team Earnings',
+        home: 'Home',
+        invest: 'Invest',
+        careerContract: 'Career Contract',
+        contractTerms: 'Contract Terms',
+        workMechanism: 'Work Mechanism',
+        agreeToTerms: 'I agree to terms and conditions',
+        acceptAndSubscribe: 'Accept & Subscribe',
+        decline: 'Decline',
+        processingDeal: 'Processing deal...',
+        verifyingSession: 'Verifying session...',
+        processingTransaction: 'Processing transaction on network...',
+        finalizingReward: 'Finalizing reward...',
+        seconds: 'seconds',
+        luckyTask: 'Lucky Task!',
+        taskDescription: 'Engage with the channel, support content with comments and shares',
+        uploadScreenshot: 'Upload interaction screenshot',
+        submitTask: 'Submit Task',
+        cancel: 'Cancel',
+        sundayLock: 'Sunday Lock 🔒',
+        marketHoliday: 'Market Holiday - Protection Shield Active'
+    },
+    fr: {
+        selectLanguage: 'Choisir la Langue',
+        totalBalance: 'Solde Total',
+        totalEarned: 'Total Gagné',
+        claimReward: 'Réclamer Récompense',
+        liveMarket: 'Marché en Direct',
+        active: 'Actif',
+        dailyProfit: 'Profit Quotidien',
+        activeContracts: 'Contrats Actifs',
+        careerPlans: 'Plans de Carrière',
+        intern: 'Stagiaire',
+        junior: 'Junior',
+        pro: 'Pro',
+        expert: 'Expert',
+        manager: 'Manager',
+        partner: 'Partenaire',
+        dailyReturn: 'Rendement Quotidien',
+        endBonus: 'Prime de Fin',
+        duration: 'Durée',
+        activate: 'Activer',
+        locked: 'Verrouillé',
+        wallet: 'Portefeuille',
+        availableBalance: 'Solde Disponible',
+        withdraw: 'Retirer',
+        network: 'Réseau',
+        minWithdraw: 'Minimum',
+        processingTime: 'Temps de Traitement',
+        team: 'Équipe',
+        yourCode: 'Votre Code de Parrainage',
+        teamMembers: 'Membres de l\'Équipe',
+        teamEarnings: 'Gains de l\'Équipe',
+        home: 'Accueil',
+        invest: 'Investir',
+        careerContract: 'Contrat de Carrière',
+        contractTerms: 'Conditions du Contrat',
+        workMechanism: 'Mécanisme de Travail',
+        agreeToTerms: 'J\'accepte les termes et conditions',
+        acceptAndSubscribe: 'Accepter et S\'abonner',
+        decline: 'Refuser',
+        processingDeal: 'Traitement en cours...',
+        verifyingSession: 'Vérification de la session...',
+        processingTransaction: 'Traitement de la transaction...',
+        finalizingReward: 'Finalisation de la récompense...',
+        seconds: 'secondes',
+        luckyTask: 'Tâche Chanceuse!',
+        taskDescription: 'Interagissez avec la chaîne, soutenez le contenu',
+        uploadScreenshot: 'Télécharger capture d\'écran',
+        submitTask: 'Soumettre la Tâche',
+        cancel: 'Annuler',
+        sundayLock: 'Verrouillage Dimanche 🔒',
+        marketHoliday: 'Jour Férié du Marché - Bouclier Actif'
+    }
+};
+
+// ═══════════════════════════════════════════════════════════
+// TIER CONFIGURATION (CONSTITUTION V7.1)
+// ═══════════════════════════════════════════════════════════
+
+const TIERS = {
+    1: { price: 25, name: 'intern', booster: 0.0, eosBonus: 2.00, baseRates: [2.2, 2.6, 3.4] },
+    2: { price: 50, name: 'junior', booster: 0.1, eosBonus: 5.00, baseRates: [2.3, 2.7, 3.5] },
+    3: { price: 100, name: 'pro', booster: 0.2, eosBonus: 12.00, baseRates: [2.4, 2.8, 3.6] },
+    4: { price: 250, name: 'expert', booster: 0.3, eosBonus: 30.00, baseRates: [2.5, 2.9, 3.7] },
+    5: { price: 500, name: 'manager', booster: 0.4, eosBonus: 70.00, baseRates: [2.6, 3.0, 3.8] },
+    6: { price: 1000, name: 'partner', booster: 0.5, eosBonus: 150.00, baseRates: [2.7, 3.1, 3.9] }
+};
+
+const PHASE_MODIFIERS = [0.0, 0.4, 1.2]; // Days 1-20, 21-40, 41-60
+
+// ═══════════════════════════════════════════════════════════
+// STATE MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+
+let currentLang = 'ar';
+let appState = null;
+let marketInterval = null;
+let spectrumAnimationFrame = null;
+let currentContractTier = null;
+
+function loadState() {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+        return initializeState();
     }
     
-    // =========================================================
-    // CORE DATA MANAGEMENT (Single Source of Truth)
-    // =========================================================
-    
-    /**
-     * Generate checksum for core data integrity
-     * @param {Object} data - Core data object
-     * @returns {string} Checksum hash
-     */
-    function generateCoreDataChecksum(data) {
-        const str = JSON.stringify({
-            balance: data.balance,
-            totalEarned: data.totalEarned,
-            lastClaim: data.lastClaim,
-            activeContracts: data.activeContracts
-        }) + SECRET_SALT;
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = ((hash << 5) - hash) + str.charCodeAt(i);
-            hash |= 0;
+    try {
+        const state = JSON.parse(stored);
+        if (!validateStateChecksum(state)) {
+            console.warn('[Security] State checksum mismatch');
+            return initializeState();
         }
-        return hash.toString();
+        return state;
+    } catch (e) {
+        console.error('[State] Load error:', e);
+        return initializeState();
     }
-    
-    /**
-     * Load core data from localStorage with checksum validation
-     * Returns default structure if not found or tampered
-     */
-    function loadCoreData() {
-        const raw = localStorage.getItem(CORE_DATA_KEY);
-        if (!raw) {
-            return {
-                balance: 0.00,
-                totalEarned: 0.00,
-                lastClaim: 0,
-                activeContracts: []
-            };
-        }
-        try {
-            const parsed = JSON.parse(raw);
-            const storedChecksum = parsed._checksum;
-            delete parsed._checksum;
-            
-            const calculatedChecksum = generateCoreDataChecksum(parsed);
-            if (storedChecksum !== calculatedChecksum) {
-                console.warn("⚠️ Core data checksum mismatch - resetting to safe state");
-                return {
-                    balance: 0.00,
-                    totalEarned: 0.00,
-                    lastClaim: 0,
-                    activeContracts: []
-                };
-            }
-            
-            return parsed;
-        } catch (e) {
-            console.error("Failed to parse core data:", e);
-            return {
-                balance: 0.00,
-                totalEarned: 0.00,
-                lastClaim: 0,
-                activeContracts: []
-            };
-        }
-    }
-    
-    /**
-     * Save core data to localStorage with checksum
-     */
-    function saveCoreData() {
-        const dataToSave = { ...coreData };
-        dataToSave._checksum = generateCoreDataChecksum(coreData);
-        localStorage.setItem(CORE_DATA_KEY, JSON.stringify(dataToSave));
-    }
-    
-    // Initialize core data
-    let coreData = loadCoreData();
-    
-    // =========================================================
-    // SUNDAY LAW (Zero Profit Rule)
-    // =========================================================
-    
-    /**
-     * Check if current day is Sunday
-     * @returns {boolean} True if Sunday (Day 0)
-     */
-    function isSunday() {
-        return new Date().getDay() === 0;
-    }
-    
-    /**
-     * Calculate number of non-Sunday days between two timestamps
-     * Used for burn penalty calculations (Sundays don't count)
-     * @param {number} startTime - Start timestamp
-     * @param {number} endTime - End timestamp
-     * @returns {number} Number of non-Sunday days
-     */
-    function countNonSundayDays(startTime, endTime) {
-        let count = 0;
-        const startDate = new Date(startTime);
-        const endDate = new Date(endTime);
-        
-        // Reset to start of day
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setHours(0, 0, 0, 0);
-        
-        const current = new Date(startDate);
-        while (current <= endDate) {
-            if (current.getDay() !== 0) { // Not Sunday
-                count++;
-            }
-            current.setDate(current.getDate() + 1);
-        }
-        
-        return count;
-    }
-    
-    // =========================================================
-    // CAREER CONTRACT ENGINE
-    // =========================================================
-    
-    /**
-     * Calculate daily rate for a contract based on tier and current day
-     * @param {number} tier - Contract tier amount (25, 50, 100, 250, 500, 1000)
-     * @param {number} contractDay - Current day of contract (1-60)
-     * @returns {number} Daily rate as decimal (e.g., 0.0220 for 2.20%)
-     */
-    function calculateDailyRate(tier, contractDay) {
-        // Get base rate for tier
-        const baseRate = TIER_BASE_RATES[tier];
-        if (!baseRate) {
-            console.warn(`Invalid tier: ${tier}`);
-            return 0;
-        }
-        
-        // Apply phase boosters
-        let rate = baseRate;
-        
-        if (contractDay >= 21 && contractDay <= 40) {
-            // Phase 2: +0.40%
-            rate += PHASE_2_BOOST;
-        } else if (contractDay >= 41 && contractDay <= 60) {
-            // Phase 3: +0.80%
-            rate += PHASE_3_BOOST;
-        }
-        
-        return rate;
-    }
-    
-    /**
-     * Calculate daily profit for a single contract
-     * @param {Object} contract - Contract object
-     * @returns {number} Daily profit amount in USDT
-     */
-    function calculateContractDailyProfit(contract) {
-        // SUNDAY LAW: Zero profit on Sundays
-        if (isSunday()) {
-            return 0.00;
-        }
-        
-        // Calculate current contract day
-        const now = Date.now();
-        const startDate = contract.startDate;
-        const daysSinceStart = Math.floor((now - startDate) / DAY_MS) + 1;
-        const contractDay = Math.min(daysSinceStart, CONTRACT_DURATION_DAYS);
-        
-        // Get daily rate for this tier and day
-        const dailyRate = calculateDailyRate(contract.tier, contractDay);
-        
-        // Calculate profit: amount * daily rate
-        const dailyProfit = contract.amount * dailyRate;
-        
-        return dailyProfit;
-    }
-    
-    /**
-     * Calculate total daily profit from all active contracts
-     * @returns {number} Total daily profit in USDT
-     */
-    function calculateTotalDailyProfit() {
-        // SUNDAY LAW: Zero profit on Sundays
-        if (isSunday()) {
-            return 0.00;
-        }
-        
-        let totalProfit = 0.00;
-        
-        // Process each active contract
-        coreData.activeContracts.forEach(contract => {
-            const contractProfit = calculateContractDailyProfit(contract);
-            totalProfit += contractProfit;
-        });
-        
-        return totalProfit;
-    }
-    
-    /**
-     * Update contract lastProcessedDay and remove expired contracts
-     */
-    function updateContracts() {
-        const now = Date.now();
-        const updatedContracts = [];
-        
-        coreData.activeContracts.forEach(contract => {
-            const daysSinceStart = Math.floor((now - contract.startDate) / DAY_MS) + 1;
-            
-            if (daysSinceStart > CONTRACT_DURATION_DAYS) {
-                // Contract expired - remove it
-                console.log(`Contract expired: Tier $${contract.tier}`);
-                return; // Skip adding to updatedContracts
-            }
-            
-            // Update lastProcessedDay
-            contract.lastProcessedDay = Math.min(daysSinceStart, CONTRACT_DURATION_DAYS);
-            updatedContracts.push(contract);
-        });
-        
-        coreData.activeContracts = updatedContracts;
-        saveCoreData();
-    }
-    
-    /**
-     * Activate a new contract
-     * @param {number} tier - Contract tier amount
-     * @param {number} amount - Investment amount (must match tier)
-     * @returns {boolean} True if activation successful
-     */
-    function activateContract(tier, amount) {
-        // Check if user already has an active contract for this tier
-        const existingContract = coreData.activeContracts.find(c => c.tier === tier);
-        if (existingContract) {
-            console.warn(`Contract already active for tier $${tier}`);
-            return false;
-        }
-        
-        // Validate tier
-        if (!INVESTMENT_TIERS.includes(tier)) {
-            console.warn(`Invalid tier: ${tier}`);
-            return false;
-        }
-        
-        // OPTIMISTIC UI: Show contract immediately
-        const optimisticContract = {
-            tier: tier,
-            amount: amount,
-            startDate: Date.now(),
-            lastProcessedDay: 1
-        };
-        coreData.activeContracts.push(optimisticContract);
-        if (el.activeContractsCount) {
-            el.activeContractsCount.textContent = coreData.activeContracts.length.toString();
-        }
-        
-        // Create new contract
-        const newContract = {
-            tier: tier,
-            amount: amount,
-            startDate: Date.now(),
-            lastProcessedDay: 1
-        };
-        
-        coreData.activeContracts = coreData.activeContracts.filter(c => c !== optimisticContract);
-        coreData.activeContracts.push(newContract);
-        saveCoreData();
-        
-        // Context-aware navigation: Suggest Home tab after activation
-        setTimeout(() => {
-            switchTab('home');
-        }, 1000);
-        
-        return true;
-    }
-    
-    // =========================================================
-    // CLAIM LOGIC
-    // =========================================================
-    
-    /**
-     * Process daily claim
-     * Adds daily profit to balance and updates lastClaim timestamp
-     * Includes optimistic UI and streak tracking
-     */
-    function processClaim() {
-        // SUNDAY LAW: Cannot claim on Sunday
-        if (isSunday()) {
-            return false;
-        }
-        
-        // Check cooldown (24 hours)
-        const now = Date.now();
-        if (coreData.lastClaim > 0) {
-            const timeSinceLastClaim = now - coreData.lastClaim;
-            if (timeSinceLastClaim < DAY_MS) {
-                // Still in cooldown
-                return false;
-            }
-        }
-        
-        // OPTIMISTIC UI: Update balance immediately (before processing)
-        const dailyProfit = calculateTotalDailyProfit();
-        const optimisticBalance = coreData.balance + dailyProfit;
-        if (el.balanceDisplay) {
-            el.balanceDisplay.textContent = `$${optimisticBalance.toFixed(2)}`;
-        }
-        
-        // Process burn penalties first
-        const hadBurn = processBurnPenalties();
-        
-        // Recalculate after burn (if any)
-        const finalDailyProfit = calculateTotalDailyProfit();
-        
-        // Add to balance
-        coreData.balance += finalDailyProfit;
-        coreData.totalEarned += finalDailyProfit;
-        coreData.lastClaim = now;
-        
-        // Update streak
-        updateStreak();
-        
-        // Update contracts
-        updateContracts();
-        
-        // Save to localStorage
-        saveCoreData();
-        
-        // Check milestones
-        checkMilestones();
-        
-        // Emotional recovery: If burn occurred, show empathetic message after delay
-        if (hadBurn) {
-            setTimeout(() => {
-                showEmpatheticReminder();
-            }, 300000); // 5 minutes
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Enhanced burn penalty processing with emotional recovery
-     */
-    let lastBurnTime = 0;
-    function processBurnPenalties() {
-        if (!coreData.lastClaim || coreData.lastClaim === 0) {
-            return false; // No previous claim, no burn
-        }
-        
-        const now = Date.now();
-        const timeSinceLastClaim = now - coreData.lastClaim;
-        
-        // Check if more than 48 hours (excluding Sundays)
-        const nonSundayDays = countNonSundayDays(coreData.lastClaim, now);
-        
-        // If more than 2 non-Sunday days have passed, burn occurred
-        if (nonSundayDays > 2) {
-            lastBurnTime = now;
-            const missedDays = nonSundayDays - 1;
-            
-            // Calculate profit for each missed day (excluding Sundays)
-            let burnedProfit = 0.00;
-            for (let i = 1; i <= missedDays; i++) {
-                const checkDate = new Date(coreData.lastClaim + (i * DAY_MS));
-                if (checkDate.getDay() !== 0) {
-                    let dayProfit = 0.00;
-                    coreData.activeContracts.forEach(contract => {
-                        const contractDay = Math.min(
-                            Math.floor((checkDate.getTime() - contract.startDate) / DAY_MS) + 1,
-                            CONTRACT_DURATION_DAYS
-                        );
-                        const dailyRate = calculateDailyRate(contract.tier, contractDay);
-                        dayProfit += contract.amount * dailyRate;
-                    });
-                    burnedProfit += dayProfit;
-                }
-            }
-            
-            if (burnedProfit > 0) {
-                console.log(`⚠️ Burn penalty: $${burnedProfit.toFixed(2)} lost due to missed claim`);
-                
-                // Experience Effect: Burn Shake
-                triggerBurnShake();
-                
-                return true; // Burn occurred
-            }
-        }
-        return false;
-    }
-    
-    /**
-     * Show empathetic reminder after burn event
-     */
-    function showEmpatheticReminder() {
-        const timeSinceBurn = Date.now() - lastBurnTime;
-        if (timeSinceBurn < 300000) return; // Only show after 5 minutes
-        
-        const reminder = document.createElement('div');
-        reminder.className = 'empathetic-reminder';
-        reminder.innerHTML = `
-            <div class="reminder-content">
-                <i class="fa-solid fa-heart"></i>
-                <div>
-                    <strong>We understand</strong>
-                    <p>Life happens. Your next claim is ready when you are.</p>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(reminder);
-        
-        setTimeout(() => {
-            reminder.classList.add('fade-out');
-            setTimeout(() => reminder.remove(), 500);
-        }, 5000);
-    }
-    
-    /**
-     * Show shield protection relief modal
-     */
-    function showShieldProtectionModal() {
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.id = 'shieldProtectionModal';
-        modal.innerHTML = `
-            <div class="modal-content glass-card">
-                <div class="modal-header">
-                    <h2>🛡️ Shield Protected!</h2>
-                    <button class="modal-close-btn" onclick="this.closest('.modal-overlay').remove()">
-                        <i class="fa-solid fa-times"></i>
-                    </button>
-                </div>
-                <div class="modal-body" style="text-align: center; padding: 30px;">
-                    <div style="font-size: 60px; margin-bottom: 20px;">🛡️</div>
-                    <h3 style="color: #FFD700; margin-bottom: 15px;">Your Profits Are Safe</h3>
-                    <p style="color: #ccc; line-height: 1.6;">
-                        Your Insurance Shield has protected your earnings. 
-                        Continue building your portfolio with confidence.
-                    </p>
-                    <button class="gold-btn" style="margin-top: 20px;" onclick="this.closest('.modal-overlay').remove()">
-                        Continue
-                    </button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        
-        setTimeout(() => {
-            if (modal.parentNode) modal.remove();
-        }, 10000);
-    }
-    
-    // =========================================================
-    // LOCALIZATION
-    // =========================================================
-    const LANGS = {
-        en: {
-            dir: "ltr",
-            home: "Dashboard", wallet: "Wallet", teamTitle: "Team", activity: "Activity",
-            pageTitle: "NexCareer", appTitle: "NexCareer", appSubtitle: "Secure Investment System",
-            secureProtocol: "Secure Protocol", activityLog: "Activity Log", integrityCheck: "Integrity Check",
-            accessDashboard: "ACCESS DASHBOARD", connected: "Connected",
-            balance: "Total Asset Value", intern: "Intern", dayLabel: "Day", of: "of",
-            dailyYield: "DAILY YIELD", totalProfit: "TOTAL PROFIT",
-            claim: "CLAIM REWARD", sunday: "MARKET CLOSED (SUNDAY)", wait: "COME BACK TOMORROW",
-            cooldown: "PROCESSING...", ready: "CLAIM AVAILABLE", locked: "SUNDAY LOCK",
-            sundayLock: "Market Closed (Sunday)",
-            bnbPair: "USDT / USD", bscChain: "BINANCE SMART CHAIN (BEP20)",
-            walletTitle: "My Wallet", bnbBep20: "USDT (BEP20)", withdrawAddress: "USDT Wallet Address",
-            withdrawAmount: "Amount (USDT)", confirm: "WITHDRAW", bnbPlaceholder: "0x...", amountPlaceholder: "0.00",
-            referralTitle: "Referrals",
-            commission: "30% Direct Commission", refLabel: "Your Link:", members: "Members", commissions: "Earned",
-            activityTitle: "Transaction History", emptyHist: "No transactions yet.", histClaimTitle: "Daily Reward",
-            waitMsg: "Verifying liquidity pool connection...", dontClose: "Do not close this page",
-            phases: ["Connecting to Binance Node...", "Verifying Smart Contract...", "Securing Transaction...", "Finalizing Deposit..."],
-            toastSuccess: "Reward Claimed Successfully", toastLink: "Link Copied!", toastRefLink: "Referral Link Copied!",
-            toastErrSun: "Market Closed on Sunday", toastErrCool: "Cooldown Active",
-            multiTab: "Session active in another tab.", useHere: "USE HERE",
-            inviteFriends: "Invite Friends & Earn", copy: "Copy", totalReferrals: "Total Referrals", refCommission: "Commission",
-            smartContractRules: "Smart Contract Rules", understood: "Understood",
-            profitDistribution: "Profit Distribution", profitDistributionDesc: "Daily automatic distribution to your account",
-            withdrawalLimit: "Withdrawal Limit", withdrawalLimitDesc: "Minimum $10 per transaction",
-            contractDuration: "Contract Duration", contractDurationDesc: "60 days investment period",
-            dailyYieldRate: "Daily Yield Rate", dailyYieldRateDesc: "2.20% daily return on investment",
-            marketHours: "Market Hours", marketHoursDesc: "Closed on Sundays for maintenance"
+}
+
+function initializeState() {
+    return {
+        user: {
+            balance: 100, // Demo balance
+            totalEarned: 0,
+            lastClaimTime: 0,
+            activeContracts: [],
+            claimHistory: [],
+            claimTimestamps: [],
+            protectionCards: 0,
+            cardIssuedAt: null,
+            referralCode: generateReferralCode(),
+            totalRenewal: 0,
+            teamCount: 0,
+            teamEarnings: 0
         },
-        ar: {
-            dir: "rtl",
-            home: "لوحة التحكم", wallet: "المحفظة", teamTitle: "الفريق", activity: "السجل",
-            pageTitle: "NexCareer", appTitle: "NexCareer", appSubtitle: "نظام استثمار آمن",
-            secureProtocol: "بروتوكول آمن", activityLog: "سجل النشاط", integrityCheck: "فحص النزاهة",
-            accessDashboard: "الوصول إلى لوحة التحكم", connected: "متصل",
-            balance: "إجمالي قيمة الأصول", intern: "متدرب", dayLabel: "يوم", of: "من",
-            dailyYield: "العائد اليومي", totalProfit: "إجمالي الربح",
-            claim: "سحب الأرباح", sunday: "السوق مغلق (الأحد)", wait: "عد غداً",
-            cooldown: "جارِ المعالجة...", ready: "المطالبة متاحة الآن", locked: "قفل الأحد",
-            sundayLock: "السوق مغلق (الأحد)",
-            bnbPair: "USDT / USD", bscChain: "سلسلة بينانس الذكية (BEP20)",
-            walletTitle: "محفظتي", bnbBep20: "USDT (BEP20)", withdrawAddress: "عنوان محفظة USDT",
-            withdrawAmount: "الكمية (USDT)", confirm: "تأكيد السحب", bnbPlaceholder: "0x...", amountPlaceholder: "0.00",
-            referralTitle: "الإحالات",
-            commission: "عمولة مباشرة 30%", refLabel: "رابط الدعوة:", members: "أعضاء", commissions: "أرباح",
-            activityTitle: "سجل المعاملات", emptyHist: "لا توجد معاملات بعد.", histClaimTitle: "مكافأة يومية",
-            waitMsg: "جاري التحقق من سيولة العقد الذكي...", dontClose: "لا تغلق هذه الصفحة",
-            phases: ["جاري الاتصال بـ Binance...", "التحقق من العقد الذكي...", "تأمين المعاملة...", "إيداع الأرباح..."],
-            toastSuccess: "تم استلام المكافأة بنجاح", toastLink: "تم نسخ الرابط!", toastRefLink: "تم نسخ رابط الإحالة!",
-            toastErrSun: "السوق مغلق يوم الأحد", toastErrCool: "فترة الانتظار نشطة",
-            multiTab: "الجلسة نشطة في صفحة أخرى.", useHere: "استخدم هنا",
-            inviteFriends: "دعوة الأصدقاء والربح", copy: "نسخ", totalReferrals: "إجمالي الإحالات", refCommission: "العمولة",
-            smartContractRules: "قواعد العقد الذكي", understood: "فهمت",
-            profitDistribution: "توزيع الأرباح", profitDistributionDesc: "توزيع تلقائي يومي على حسابك",
-            withdrawalLimit: "حد السحب", withdrawalLimitDesc: "الحد الأدنى 10 دولارات لكل معاملة",
-            contractDuration: "مدة العقد", contractDurationDesc: "فترة استثمار 60 يوماً",
-            dailyYieldRate: "معدل العائد اليومي", dailyYieldRateDesc: "عائد يومي 2.20% على الاستثمار",
-            marketHours: "ساعات السوق", marketHoursDesc: "مغلق أيام الأحد للصيانة"
+        platform: {
+            currentDay: 1,
+            launchDate: Date.now()
         },
-        fr: {
-            dir: "ltr",
-            home: "Tableau de bord", wallet: "Portefeuille", teamTitle: "Équipe", activity: "Activité",
-            pageTitle: "NexCareer", appTitle: "NexCareer", appSubtitle: "Système d'investissement sécurisé",
-            secureProtocol: "Protocole sécurisé", activityLog: "Journal d'activité", integrityCheck: "Vérification d'intégrité",
-            accessDashboard: "ACCÉDER AU TABLEAU DE BORD", connected: "Connecté",
-            balance: "Valeur Totale", intern: "Stagiaire", dayLabel: "Jour", of: "sur",
-            dailyYield: "RENDEMENT QUOTIDIEN", totalProfit: "PROFIT TOTAL",
-            claim: "RÉCLAMER", sunday: "MARCHÉ FERMÉ", wait: "REVENEZ DEMAIN",
-            cooldown: "TRAITEMENT...", ready: "RÉCLAMATION DISPONIBLE", locked: "FERMÉ",
-            sundayLock: "Marché fermé (Dimanche)",
-            bnbPair: "USDT / USD", bscChain: "BINANCE SMART CHAIN (BEP20)",
-            walletTitle: "Mon Portefeuille", bnbBep20: "USDT (BEP20)", withdrawAddress: "Adresse du portefeuille USDT",
-            withdrawAmount: "Montant (USDT)", confirm: "RETRAIT", bnbPlaceholder: "0x...", amountPlaceholder: "0.00",
-            referralTitle: "Parrainages",
-            commission: "Commission directe de 30%", refLabel: "Votre Lien:", members: "Membres", commissions: "Gains",
-            activityTitle: "Historique", emptyHist: "Aucune transaction.", histClaimTitle: "Récompense Quotidienne",
-            waitMsg: "Veuillez patienter...", dontClose: "Ne fermez pas cette page",
-            phases: ["Connexion à Binance...", "Vérification du contrat...", "Sécurisation...", "Finalisation..."],
-            toastSuccess: "Récompense reçue avec succès", toastLink: "Lien copié !", toastRefLink: "Lien de parrainage copié !",
-            toastErrSun: "Marché fermé dimanche", toastErrCool: "Période d'attente active",
-            multiTab: "Session active ailleurs.", useHere: "UTILISER ICI",
-            inviteFriends: "Inviter des amis et gagner", copy: "Copier", totalReferrals: "Total des parrainages", refCommission: "Commission",
-            smartContractRules: "Règles du contrat intelligent", understood: "Compris",
-            profitDistribution: "Distribution des profits", profitDistributionDesc: "Distribution automatique quotidienne sur votre compte",
-            withdrawalLimit: "Limite de retrait", withdrawalLimitDesc: "Minimum 10 $ par transaction",
-            contractDuration: "Durée du contrat", contractDurationDesc: "Période d'investissement de 60 jours",
-            dailyYieldRate: "Taux de rendement quotidien", dailyYieldRateDesc: "Rendement quotidien de 2,20 % sur l'investissement",
-            marketHours: "Heures de marché", marketHoursDesc: "Fermé le dimanche pour maintenance"
-        }
+        _checksum: '',
+        _version: '7.1'
+    };
+}
+
+function saveState(state) {
+    state._checksum = generateChecksum(state);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function generateChecksum(state) {
+    const data = JSON.stringify({
+        balance: state.user.balance,
+        totalEarned: state.user.totalEarned,
+        lastClaimTime: state.user.lastClaimTime,
+        activeContracts: state.user.activeContracts
+    });
+    
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+        const char = data.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return hash.toString(16);
+}
+
+function validateStateChecksum(state) {
+    if (!state._checksum) return false;
+    const expectedChecksum = generateChecksum(state);
+    return state._checksum === expectedChecksum;
+}
+
+function generateReferralCode() {
+    return 'NEXCAR' + Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONTRACT ENGINE
+// ═══════════════════════════════════════════════════════════
+
+function getContractPhase(contractDay) {
+    if (contractDay >= 1 && contractDay <= 20) return 0; // Phase 1
+    if (contractDay >= 21 && contractDay <= 40) return 1; // Phase 2
+    if (contractDay >= 41 && contractDay <= 60) return 2; // Phase 3
+    return 0;
+}
+
+function calculateDailyProfit(tier, contractDay) {
+    const tierConfig = TIERS[tier];
+    const phase = getContractPhase(contractDay);
+    
+    const baseRate = tierConfig.baseRates[phase];
+    const totalRate = baseRate + tierConfig.booster + PHASE_MODIFIERS[phase];
+    const dailyProfit = tierConfig.price * (totalRate / 100);
+    
+    return parseFloat(dailyProfit.toFixed(2));
+}
+
+function isSunday() {
+    return new Date().getDay() === 0;
+}
+
+function showContractModal(tier) {
+    currentContractTier = tier;
+    const tierConfig = TIERS[tier];
+    const modal = document.getElementById('contractModal');
+    const badge = document.getElementById('contractTierBadge');
+    const details = document.getElementById('contractDetails');
+    const points = document.getElementById('contractPoints');
+    
+    badge.textContent = `Tier ${tier}`;
+    
+    // Contract Details
+    details.innerHTML = `
+        <div class="contract-detail-row">
+            <span class="contract-detail-label">${t('dailyReturn')}:</span>
+            <span class="contract-detail-value">${tierConfig.baseRates[0]}% - ${tierConfig.baseRates[2] + PHASE_MODIFIERS[2]}%</span>
+        </div>
+        <div class="contract-detail-row">
+            <span class="contract-detail-label">${t('duration')}:</span>
+            <span class="contract-detail-value">60 ${t('days', 'يوم', 'jours')}</span>
+        </div>
+        <div class="contract-detail-row">
+            <span class="contract-detail-label">${t('endBonus')}:</span>
+            <span class="contract-detail-value">$${tierConfig.eosBonus.toFixed(2)}</span>
+        </div>
+        <div class="contract-detail-row">
+            <span class="contract-detail-label">${t('investment', 'الاستثمار', 'Investissement')}:</span>
+            <span class="contract-detail-value">$${tierConfig.price}</span>
+        </div>
+    `;
+    
+    // Contract Points
+    points.innerHTML = `
+        <li>${t('capital100Locked', 'رأس المال مقفل 100% لمدة 60 يوماً', 'Capital 100% verrouillé pendant 60 jours')}</li>
+        <li>${t('dailyClaimRequired', 'يجب الضغط على زر [استلام] كل 24 ساعة', 'Appuyez sur [Réclamer] toutes les 24h')}</li>
+        <li>${t('sundayLockDesc', 'كل يوم أحد: السوق مغلق، الربح = 0%', 'Chaque dimanche: Marché fermé, profit = 0%')}</li>
+        <li>${t('burnRule', 'عدم الاستلام خلال 24 ساعة = حرق أرباح اليوم', 'Pas de réclamation = brûlure des profits')}</li>
+        <li>${t('phaseSystem', 'نظام المراحل: 3 مراحل بنسب متصاعدة', 'Système de phases: 3 phases progressives')}</li>
+        <li>${t('usdtBep20', 'الشبكة الحصرية: USDT - BEP20 فقط', 'Réseau exclusif: USDT - BEP20 uniquement')}</li>
+    `;
+    
+    modal.classList.add('active');
+}
+
+function closeContractModal() {
+    const modal = document.getElementById('contractModal');
+    modal.classList.remove('active');
+    currentContractTier = null;
+    
+    // Reset checkbox
+    const checkbox = document.getElementById('agreeCheckbox');
+    checkbox.checked = false;
+    updateContractAcceptButton();
+}
+
+function updateContractAcceptButton() {
+    const checkbox = document.getElementById('agreeCheckbox');
+    const acceptBtn = document.getElementById('btnContractAccept');
+    acceptBtn.disabled = !checkbox.checked;
+}
+
+function acceptContract() {
+    if (!currentContractTier) return;
+    
+    const state = loadState();
+    const tierConfig = TIERS[currentContractTier];
+    
+    // Check balance
+    if (state.user.balance < tierConfig.price) {
+        showToast(t('insufficientBalance', 'رصيد غير كافٍ', 'Solde insuffisant'), 'error');
+        return;
+    }
+    
+    // Check if contract already exists
+    const existingContract = state.user.activeContracts.find(c => c.tier === currentContractTier && c.status === 'active');
+    if (existingContract) {
+        showToast(t('contractExists', 'العقد موجود بالفعل', 'Contrat existe déjà'), 'error');
+        return;
+    }
+    
+    // Create contract
+    const contract = {
+        id: 'contract_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        tier: currentContractTier,
+        principal: tierConfig.price,
+        status: 'active',
+        contractDay: 1,
+        activatedAt: Date.now(),
+        lastAccrualAt: Date.now(),
+        unclaimedBalance: 0,
+        totalEarned: 0,
+        loyaltyBonus: 0
     };
     
-    // =========================================================
-    // SESSION MANAGER (V22 - The Vault)
-    // =========================================================
-    const sessionChannel = new BroadcastChannel('gd_secure_v22');
-    let isLeader = false;
-    let heartbeatTimer, deadCheckTimer, lastHeartbeat = 0;
+    // Deduct from balance
+    state.user.balance -= tierConfig.price;
     
-    function initSession() {
-        const now = Date.now();
-        const lastActive = parseInt(localStorage.getItem('gd_last_active') || 0);
-        if (now - lastActive > 2000) becomeLeader();
-        else becomeFollower();
-        sessionChannel.onmessage = (e) => {
-            if (e.data === 'HEARTBEAT' && !isLeader) lastHeartbeat = Date.now();
-            else if (e.data === 'FORCE_TAKEOVER' && isLeader) becomeFollower();
-        };
-    }
+    // Add contract
+    state.user.activeContracts.push(contract);
     
-    function becomeLeader() {
-        isLeader = true;
-        document.getElementById('multiTabWarning').classList.add('hidden');
-        document.querySelector('.app').style.opacity = '1';
-        document.querySelector('.app').style.pointerEvents = 'auto';
-        if (heartbeatTimer) clearInterval(heartbeatTimer);
-        heartbeatTimer = setInterval(() => {
-            sessionChannel.postMessage('HEARTBEAT');
-            localStorage.setItem('gd_last_active', Date.now());
-        }, 1000);
-        if (deadCheckTimer) clearInterval(deadCheckTimer);
-    }
+    saveState(state);
+    closeContractModal();
+    updateUI();
+    showToast(t('contractActivated', 'تم تفعيل العقد بنجاح!', 'Contrat activé avec succès!'), 'success');
+}
+
+function processContracts() {
+    const state = loadState();
+    const now = Date.now();
+    let hasChanges = false;
     
-    function becomeFollower() {
-        isLeader = false;
-        if (heartbeatTimer) clearInterval(heartbeatTimer);
-        document.getElementById('multiTabWarning').classList.remove('hidden');
-        document.querySelector('.app').style.opacity = '0.3';
-        document.querySelector('.app').style.pointerEvents = 'none';
-        lastHeartbeat = Date.now();
-        if (deadCheckTimer) clearInterval(deadCheckTimer);
-        deadCheckTimer = setInterval(() => {
-            if (Date.now() - lastHeartbeat > 3000) becomeLeader();
-        }, 1000);
-    }
-    
-    document.getElementById('useHereBtn').onclick = () => {
-        sessionChannel.postMessage('FORCE_TAKEOVER');
-        becomeLeader();
-    };
-    
-    // =========================================================
-    // SECURITY & UTILS
-    // =========================================================
-    function generateHash(data) {
-        const str = JSON.stringify(data) + SECRET_SALT;
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = ((hash << 5) - hash) + str.charCodeAt(i);
-            hash |= 0;
-        }
-        return hash.toString();
-    }
-    
-    function showToast(msg, type = 'error') {
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-circle-xmark' : 'fa-circle-check'}"></i> ${msg}`;
-        document.getElementById('toastContainer').appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
-    }
-    
-    // =========================================================
-    // LEGACY STATE MANAGEMENT (for compatibility)
-    // =========================================================
-    const defaultState = {
-        balance: 0.00, lastClaim: 0, lang: null,
-        refCode: Math.floor(100000 + Math.random() * 900000),
-        isClaiming: false, claimStartTime: 0, startDate: Date.now(),
-        hasShield: false,
-        taskSubmitted: false,
-        introShown: false,
-        streakDays: 0,
-        lastStreakDate: 0,
-        milestones: {
-            firstClaim: false,
-            sevenDayStreak: false,
-            hundredDollars: false
-        },
-        sessionResumeCount: 0,
-        lastSessionTime: 0
-    };
-    
-    function getInitialLang() {
-        const b = navigator.language.slice(0, 2);
-        return ["ar", "fr"].includes(b) ? b : "en";
-    }
-    
-    function loadState() {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return { ...defaultState, lang: getInitialLang() };
-        try {
-            const parsed = JSON.parse(raw);
-            const h = parsed._hash;
-            delete parsed._hash;
-            if (generateHash(parsed) !== h) throw new Error("Tamper");
-            return parsed;
-        } catch (e) {
-            return { ...defaultState, lang: getInitialLang() };
-        }
-    }
-    
-    function saveState() {
-        const d = { ...state };
-        if(d._hash) delete d._hash;
-        d._hash = generateHash(d);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
-    }
-    
-    let state = loadState();
-    
-    // =========================================================
-    // UI ELEMENTS
-    // =========================================================
-    const el = {
-        balance: document.getElementById("balanceDisplay"),
-        balanceDisplay: document.getElementById("balanceDisplay"),
-        walletPageBalance: document.getElementById("walletPageBalance"),
-        claimBtn: document.getElementById("claimBtn"),
-        countdownDisplay: document.getElementById("countdownDisplay"),
-        sundayLockOverlay: document.getElementById("sundayLockOverlay"),
-        marketPrice: document.getElementById("marketPrice"),
-        bnbPrice: document.getElementById("marketPrice"),
-        bnbChange: document.getElementById("bnbChange"),
-        coinName: document.getElementById("coinNameDisplay"),
-        coinNameDisplay: document.getElementById("coinNameDisplay"),
-        activeContractsCount: document.getElementById("activeContractsCount"),
-        coinIcon: document.getElementById("coinIcon"),
-        menuBtn: document.getElementById("menuBtn"),
-        sidebar: document.getElementById("sidebar"),
-        overlay: document.getElementById("sidebarOverlay"),
-        menuItems: document.querySelectorAll(".menu-item"),
-        langFabBtn: document.getElementById("langFabBtn"),
-        langFabMenu: document.getElementById("langFabMenu"),
-        langFabOptions: document.querySelectorAll(".lang-fab-option"),
-        username: document.getElementById("usernameDisplay"),
-        welcomeScreen: document.getElementById("welcomeScreen"),
-        startBtn: document.getElementById("startBtn"),
-        claimOverlay: document.getElementById("claimOverlay"),
-        progressRing: document.getElementById("progressRing"),
-        timer: document.getElementById("timer"),
-        phaseText: document.getElementById("phaseText"),
-        refLink: document.getElementById("refLink"),
-        copyBtn: document.getElementById("copyBtn"),
-        historyList: document.getElementById("historyList"),
-        currentDay: document.getElementById("currentDay"),
-        progressFill: document.getElementById("progressFill"),
-        totalProfit: document.getElementById("totalProfit"),
-        liveGraphCanvas: document.getElementById("liveGraphCanvas"),
-        marketChartCanvas: document.getElementById("marketChartCanvas"),
-        referralLink: document.getElementById("referralLink"),
-        copyReferralBtn: document.getElementById("copyReferralBtn"),
-        totalReferrals: document.getElementById("totalReferrals"),
-        refCommission: document.getElementById("refCommission"),
-        termsBtn: document.getElementById("termsBtn"),
-        termsModal: document.getElementById("termsModal"),
-        closeTermsBtn: document.getElementById("closeTermsBtn"),
-        acceptTermsBtn: document.getElementById("acceptTermsBtn"),
-        referralModal: document.getElementById("referralModal"),
-        closeReferralBtn: document.getElementById("closeReferralBtn"),
-        activityFeed: document.getElementById("activityFeed"),
-        insuranceBtn: document.getElementById("insuranceBtn"),
-        teamCountMain: document.getElementById("teamCountMain"),
-        teamEarningsMain: document.getElementById("teamEarningsMain"),
-        teamTableBody: document.getElementById("teamTableBody"),
-        constitutionBtn: document.getElementById("constitutionBtn"),
-        constitutionModal: document.getElementById("constitutionModal"),
-        closeConstitutionBtn: document.getElementById("closeConstitutionBtn"),
-        acceptConstitutionBtn: document.getElementById("acceptConstitutionBtn"),
-        uploadTaskBtn: document.getElementById("uploadTaskBtn"),
-        uploadTaskText: document.getElementById("uploadTaskText"),
-        walletConnectBtn: document.getElementById("connect-wallet"),
-        walletConnectText: document.getElementById("walletConnectText"),
-        uploadModal: document.getElementById("uploadModal"),
-        closeUploadModal: document.getElementById("closeUploadModal"),
-        uploadStatusText: document.getElementById("uploadStatusText"),
-        uploadProgressFill: document.getElementById("uploadProgressFill"),
-        depositModal: document.getElementById("depositModal"),
-        closeDepositBtn: document.getElementById("closeDepositBtn"),
-        depositModalTitle: document.getElementById("depositModalTitle"),
-        depositAmount: document.getElementById("depositAmount"),
-        depositWalletAddress: document.getElementById("depositWalletAddress"),
-        copyWalletBtn: document.getElementById("copyWalletBtn"),
-        depositTxid: document.getElementById("depositTxid"),
-        confirmDepositBtn: document.getElementById("confirmDepositBtn"),
-        copyReferralBtn: document.getElementById("copyReferralBtn"),
-        referralCount: document.getElementById("referralCount")
-    };
-    
-    // =========================================================
-    // CORE LOGIC
-    // =========================================================
-    const T = () => LANGS[state.lang];
-    const now = () => Date.now();
-    
-    /**
-     * Update UI with current core data
-     * DOM binding only - no structure changes
-     */
-    function updateUI() {
-        const txt = T();
-        document.documentElement.dir = txt.dir;
-        document.documentElement.lang = state.lang;
-        document.title = txt.pageTitle;
+    state.user.activeContracts.forEach(contract => {
+        if (contract.status !== 'active') return;
         
-        // Update ALL text elements with data-i18n
-        document.querySelectorAll("[data-i18n]").forEach(e => {
-            if(txt[e.dataset.i18n]) e.textContent = txt[e.dataset.i18n];
-        });
+        const timeSinceLastAccrual = now - contract.lastAccrualAt;
+        const oneDayMs = 24 * 60 * 60 * 1000;
         
-        // Update placeholders
-        document.querySelectorAll("[data-i18n-placeholder]").forEach(e => {
-            if(txt[e.dataset.i18nPlaceholder]) e.placeholder = txt[e.dataset.i18nPlaceholder];
-        });
-        
-        // =========================================================
-        // UPDATE BALANCE DISPLAYS (DOM BINDING)
-        // =========================================================
-        // Sync with admin-approved balance first
-        const adminBalance = parseFloat(localStorage.getItem('totalBalance') || '0');
-        if (adminBalance > 0) {
-            coreData.balance = adminBalance;
-            saveCoreData();
-        }
-        
-        // Update all balance displays (Unified IDs)
-        if (el.balanceDisplay) {
-            el.balanceDisplay.textContent = `$${coreData.balance.toFixed(2)}`;
-        }
-        if (el.balance) {
-            el.balance.textContent = `$${coreData.balance.toFixed(2)}`;
-        }
-        if (el.walletPageBalance) {
-            el.walletPageBalance.textContent = `$${coreData.balance.toFixed(2)}`;
-        }
-        if (el.totalProfit) {
-            el.totalProfit.textContent = `$${coreData.totalEarned.toFixed(2)}`;
-        }
-        
-        // Update active contracts count
-        if (el.activeContractsCount) {
-            el.activeContractsCount.textContent = coreData.activeContracts.length.toString();
-        }
-        
-        // Update streak display
-        const streakDisplay = document.getElementById('streakDays');
-        if (streakDisplay) {
-            streakDisplay.textContent = state.streakDays || 0;
-            const streakContainer = document.getElementById('streakDisplay');
-            if (streakContainer && state.streakDays >= 7) {
-                streakContainer.style.color = '#FFD700';
-                streakContainer.style.fontWeight = 'bold';
-            }
-        }
-        
-        // =========================================================
-        // UPDATE CONTRACT PROGRESS (DOM BINDING)
-        // =========================================================
-        // Calculate current contract day (use earliest active contract or default)
-        let currentContractDay = 1;
-        if (coreData.activeContracts.length > 0) {
-            const earliestContract = coreData.activeContracts.reduce((earliest, contract) => {
-                return contract.startDate < earliest.startDate ? contract : earliest;
-            });
-            const now = Date.now();
-            const daysSinceStart = Math.floor((now - earliestContract.startDate) / DAY_MS) + 1;
-            currentContractDay = Math.min(daysSinceStart, CONTRACT_DURATION_DAYS);
-        }
-        
-        if (el.currentDay) {
-            el.currentDay.textContent = `${currentContractDay} / ${CONTRACT_DURATION_DAYS}`;
-        }
-        if (el.progressFill) {
-            const progressPercent = (currentContractDay / CONTRACT_DURATION_DAYS) * 100;
-            el.progressFill.style.width = `${progressPercent}%`;
-        }
-        
-        // =========================================================
-        // UPDATE REFERRAL DISPLAYS (DOM BINDING)
-        // =========================================================
-        if (el.refLink) el.refLink.value = `nexcareer.io/?ref=${state.refCode}`;
-        if (el.username) el.username.textContent = `NexCareer Associate`;
-        if (el.referralLink) el.referralLink.value = `https://nexcareer.io/?ref=User${state.refCode}`;
-        
-        // CONSTITUTION ENFORCEMENT: Referral Commission = 30% (HARDCODED)
-        if (el.totalReferrals) el.totalReferrals.textContent = "0";
-        if (el.refCommission) {
-            // Calculate commission based on 30% of daily yield
-            const dailyProfit = calculateTotalDailyProfit();
-            const commission = dailyProfit * REFERRAL_COMMISSION_RATE;
-            el.refCommission.textContent = `$${commission.toFixed(2)}`;
-        }
-        
-        // Update active language
-        if (el.langFabOptions) {
-            el.langFabOptions.forEach(btn => btn.classList.toggle("active", btn.dataset.lang === state.lang));
-        }
-        
-        // =========================================================
-        // UPDATE CLAIM BUTTON STATE (DOM BINDING)
-        // =========================================================
-        if (el.claimBtn) {
-            if (state.isClaiming) {
-                el.claimBtn.disabled = true;
-                const span = el.claimBtn.querySelector("span");
-                if (span) span.textContent = txt.cooldown;
-                if (el.sundayLockOverlay) el.sundayLockOverlay.classList.add('hidden');
-            } else if (isSunday()) {
-                // SUNDAY LAW: Disable claim button
-                el.claimBtn.disabled = true;
-                const span = el.claimBtn.querySelector("span");
-                if (span) span.textContent = "SUNDAY LOCK 🔒";
-                if (el.sundayLockOverlay) el.sundayLockOverlay.classList.remove('hidden');
-            } else if (coreData.lastClaim > 0 && (now() - coreData.lastClaim < DAY_MS)) {
-                // Still in 24-hour cooldown
-                el.claimBtn.disabled = true;
-                const span = el.claimBtn.querySelector("span");
-                if (span) span.textContent = txt.wait;
-                if (el.sundayLockOverlay) el.sundayLockOverlay.classList.add('hidden');
-            } else {
-                // Ready to claim
-                el.claimBtn.disabled = false;
-                const span = el.claimBtn.querySelector("span");
-                if (span) span.textContent = txt.claim;
-                if (el.sundayLockOverlay) el.sundayLockOverlay.classList.add('hidden');
-            }
-        }
-        
-        // Update market asset display based on current day
-        const currentDayAsset = getAssetByDay();
-        updateAssetDisplay(currentDayAsset);
-        
-        // Restart market chart with Sunday logic
-        stopMarketChart();
-        startMarketChart();
-    }
-    
-    // =========================================================
-    // MARKET CHART (Sunday Logic)
-    // =========================================================
-    let chartAnimFrame;
-    function startMarketChart() {
-        const canvas = el.marketChartCanvas;
-        if (!canvas) return;
-        
-        const ctx = canvas.getContext('2d');
-        const dpr = window.devicePixelRatio || 1;
-        const width = canvas.offsetWidth;
-        const height = canvas.offsetHeight;
-        
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-        ctx.scale(dpr, dpr);
-        
-        const points = 50;
-        let dataPoints;
-        let isMarketClosed = isSunday();
-        
-        if (isMarketClosed) {
-            // SUNDAY: Perfectly flat horizontal line at 0.5 (middle of canvas)
-            const flatY = height * 0.5;
-            dataPoints = Array(points).fill(flatY);
-        } else {
-            dataPoints = Array(points).fill(0).map(() => Math.random() * 0.6 + 0.2);
-        }
-        
-        let phaseOffset = 0;
-        
-        function animate() {
-            const currentIsSunday = isSunday();
-            ctx.clearRect(0, 0, width, height);
+        if (timeSinceLastAccrual >= oneDayMs) {
+            const daysPassed = Math.floor(timeSinceLastAccrual / oneDayMs);
             
-            if (!currentIsSunday) {
-                dataPoints.shift();
-                const lastPoint = dataPoints[dataPoints.length - 1];
-                const variation = (Math.random() - 0.5) * 0.1;
-                const newPoint = Math.max(0.1, Math.min(0.9, lastPoint + variation));
-                dataPoints.push(newPoint);
-            } else {
-                // SUNDAY: Perfectly flat horizontal line at 0.5 (middle of canvas)
-                const flatY = height * 0.5;
-                dataPoints = Array(points).fill(flatY);
-            }
-            
-            ctx.beginPath();
-            for (let i = 0; i < points; i++) {
-                const x = (i / (points - 1)) * width;
-                const y = currentIsSunday ? dataPoints[i] : (height - (dataPoints[i] * height));
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            
-            if (currentIsSunday) {
-                // SUNDAY: Perfectly flat golden dashed line at 0.5 height
-                ctx.setLineDash([8, 4]);
-                ctx.strokeStyle = 'rgba(255, 215, 0, 0.8)';
-                ctx.lineWidth = 2.5;
-                ctx.shadowBlur = 8;
-                ctx.shadowColor = 'rgba(255, 215, 0, 0.5)';
-                ctx.stroke();
-                ctx.setLineDash([]);
-            } else {
-                const currentAsset = getAssetByDay();
-                const assetColor = currentAsset ? currentAsset.color : '#00ff88';
-                const pulseIntensity = 0.8 + Math.sin(phaseOffset) * 0.2;
-                ctx.strokeStyle = assetColor;
-                ctx.lineWidth = 2;
-                ctx.shadowBlur = 15 * pulseIntensity;
-                ctx.shadowColor = assetColor;
-                ctx.stroke();
-            }
-            
-            if (!currentIsSunday) {
-                ctx.shadowBlur = 0;
-                const scanX = (Math.sin(phaseOffset * 0.5) * 0.5 + 0.5) * width;
-                const scanIndex = Math.floor((scanX / width) * (points - 1));
-                const scanY = height - (dataPoints[scanIndex] * height);
-                ctx.beginPath();
-                ctx.arc(scanX, scanY, 3, 0, Math.PI * 2);
-                const currentAsset = getAssetByDay();
-                ctx.fillStyle = currentAsset ? currentAsset.color : '#00ff88';
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = currentAsset ? currentAsset.color : '#00ff88';
-                ctx.fill();
-                ctx.shadowBlur = 0;
-            }
-            
-            phaseOffset += 0.05;
-            chartAnimFrame = requestAnimationFrame(animate);
-        }
-        
-        animate();
-    }
-    
-    function stopMarketChart() {
-        if (chartAnimFrame) cancelAnimationFrame(chartAnimFrame);
-    }
-    
-    // =========================================================
-    // HAPTIC FEEDBACK & EXPERIENCE EFFECTS
-    // =========================================================
-    
-    /**
-     * Trigger haptic vibration pattern
-     * @param {Array<number>} pattern - Vibration pattern [duration, pause, duration, ...]
-     */
-    function triggerHaptic(pattern) {
-        if ('vibrate' in navigator) {
-            try {
-                navigator.vibrate(pattern);
-            } catch (e) {
-                console.warn('Haptic feedback not supported');
-            }
-        }
-    }
-    
-    /**
-     * Success burst effect (claim success)
-     */
-    function triggerSuccessBurst() {
-        // Haptic: [50, 30, 50]
-        triggerHaptic([50, 30, 50]);
-        
-        // Visual burst
-        const burst = document.createElement('div');
-        burst.className = 'success-burst';
-        burst.innerHTML = '<div class="burst-content">✨ CLAIM SUCCESS! ✨</div>';
-        document.body.appendChild(burst);
-        
-        setTimeout(() => {
-            burst.classList.add('fade-out');
-            setTimeout(() => burst.remove(), 500);
-        }, 2000);
-    }
-    
-    /**
-     * Burn shake effect
-     */
-    function triggerBurnShake() {
-        // Haptic: [100, 50, 100]
-        triggerHaptic([100, 50, 100]);
-        
-        // Visual shake
-        const app = document.querySelector('.app');
-        if (app) {
-            app.classList.add('burn-shake');
-            setTimeout(() => {
-                app.classList.remove('burn-shake');
-            }, 600);
-        }
-        
-        // Burn notification
-        const burnNotif = document.createElement('div');
-        burnNotif.className = 'burn-notification';
-        burnNotif.innerHTML = '<div class="burn-content">⚠️ BURN EVENT: Missed claim penalty applied</div>';
-        document.body.appendChild(burnNotif);
-        
-        setTimeout(() => {
-            burnNotif.classList.add('fade-out');
-            setTimeout(() => burnNotif.remove(), 500);
-        }, 3000);
-    }
-    
-    /**
-     * Shield protection relief effect
-     */
-    function triggerShieldRelief() {
-        // Relief glow effect
-        const shieldBtn = document.getElementById('insuranceBtn');
-        if (shieldBtn) {
-            shieldBtn.style.animation = 'shieldReliefGlow 2s ease';
-            setTimeout(() => {
-                shieldBtn.style.animation = '';
-            }, 2000);
-        }
-    }
-    
-    // =========================================================
-    // BEHAVIORAL EXPERIENCE LAYER - TEMPORAL LOGIC
-    // =========================================================
-    
-    /**
-     * Get current time context for behavioral triggers
-     */
-    function getTimeContext() {
-        const now = new Date();
-        const hour = now.getHours();
-        const day = now.getDay();
-        const minutes = now.getMinutes();
-        
-        return {
-            hour: hour,
-            day: day,
-            minutes: minutes,
-            isMorning: hour >= 6 && hour < 10,
-            isEvening: hour >= 20,
-            isSaturday: day === 6,
-            isSaturdayEvening: day === 6 && hour >= 20 && hour < 23,
-            isSunday: day === 0
-        };
-    }
-    
-    /**
-     * Update streak counter based on daily claims
-     */
-    function updateStreak() {
-        const now = Date.now();
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayMs = today.getTime();
-        
-        const lastStreakDate = state.lastStreakDate || 0;
-        const lastStreakDay = new Date(lastStreakDate);
-        lastStreakDay.setHours(0, 0, 0, 0);
-        const lastStreakDayMs = lastStreakDay.getTime();
-        
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayMs = yesterday.getTime();
-        
-        if (lastStreakDayMs === todayMs) {
-            // Already claimed today, streak continues
-            return;
-        } else if (lastStreakDayMs === yesterdayMs) {
-            // Claimed yesterday, increment streak
-            state.streakDays += 1;
-            state.lastStreakDate = now;
-            saveState();
-            
-            // Check for milestone
-            if (state.streakDays === 7 && !state.milestones.sevenDayStreak) {
-                triggerMilestone('sevenDayStreak');
-            }
-        } else if (lastStreakDayMs < yesterdayMs) {
-            // Streak broken, reset
-            state.streakDays = 1;
-            state.lastStreakDate = now;
-            saveState();
-        }
-    }
-    
-    /**
-     * Get animation delay multiplier based on streak
-     * Fast-track consistent users (>7 days) by 30%
-     */
-    function getAnimationSpeed() {
-        return state.streakDays >= 7 ? 0.7 : 1.0;
-    }
-    
-    /**
-     * Trigger milestone celebration
-     */
-    function triggerMilestone(type) {
-        state.milestones[type] = true;
-        saveState();
-        
-        let message = '';
-        let icon = '🎉';
-        
-        switch(type) {
-            case 'firstClaim':
-                message = '🎊 First Claim Complete! Welcome to NexCareer!';
-                icon = '🌟';
-                break;
-            case 'sevenDayStreak':
-                message = '🔥 7-Day Streak! You\'re on fire!';
-                icon = '🔥';
-                break;
-            case 'hundredDollars':
-                message = '💰 $100 Milestone Reached! Keep it up!';
-                icon = '💎';
-                break;
-        }
-        
-        if (message) {
-            showToast(message, 'success');
-            
-            // Add visual celebration
-            const celebration = document.createElement('div');
-            celebration.className = 'milestone-celebration';
-            celebration.innerHTML = `<div class="celebration-content">${icon} ${message}</div>`;
-            document.body.appendChild(celebration);
-            
-            setTimeout(() => {
-                celebration.classList.add('fade-out');
-                setTimeout(() => celebration.remove(), 500);
-            }, 3000);
-        }
-    }
-    
-    /**
-     * Check and trigger milestones based on current state
-     */
-    function checkMilestones() {
-        // First claim milestone
-        if (coreData.totalEarned > 0 && !state.milestones.firstClaim) {
-            triggerMilestone('firstClaim');
-        }
-        
-        // $100 milestone
-        if (coreData.totalEarned >= 100 && !state.milestones.hundredDollars) {
-            triggerMilestone('hundredDollars');
-        }
-    }
-    
-    /**
-     * Saturday Pre-Notification Banner
-     */
-    function showSaturdayPreNotification() {
-        const timeCtx = getTimeContext();
-        if (!timeCtx.isSaturdayEvening) return;
-        
-        const banner = document.getElementById('saturdayPreNotification');
-        if (banner) {
-            banner.classList.remove('hidden');
-        }
-    }
-    
-    /**
-     * Auto-scroll to claim button during morning ritual
-     */
-    function performMorningRitual() {
-        const timeCtx = getTimeContext();
-        if (!timeCtx.isMorning) return;
-        
-        const diff = DAY_MS - (now() - coreData.lastClaim);
-        if (diff <= 0 && el.claimBtn && !el.claimBtn.disabled) {
-            // Auto-scroll to claim button
-            const claimContainer = document.querySelector('.claim-btn-container');
-            if (claimContainer) {
-                claimContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }
-    }
-    
-    /**
-     * Add urgency badge to home tab during evening urgency
-     */
-    function updateEveningUrgencyBadges() {
-        const timeCtx = getTimeContext();
-        const diff = DAY_MS - (now() - coreData.lastClaim);
-        const hoursRemaining = Math.floor(diff / (1000 * 60 * 60));
-        
-        const homeTab = document.querySelector('.nav-item[data-tab="home"]');
-        if (timeCtx.isEvening && hoursRemaining < 4 && hoursRemaining > 0 && !isSunday()) {
-            if (homeTab && !homeTab.querySelector('.urgency-badge')) {
-                const badge = document.createElement('span');
-                badge.className = 'urgency-badge';
-                badge.textContent = '!';
-                homeTab.appendChild(badge);
-            }
-        } else {
-            const badge = homeTab?.querySelector('.urgency-badge');
-            if (badge) badge.remove();
-        }
-    }
-    
-    // =========================================================
-    // COUNTDOWN & HISTORY (With Enhanced Behavioral Intelligence)
-    // =========================================================
-    function startCountdown() {
-        setInterval(() => {
-            const txt = T();
-            const timeCtx = getTimeContext();
-            
-            if (isSunday()) {
-                if (el.countdownDisplay) {
-                    el.countdownDisplay.textContent = txt.locked;
-                    el.countdownDisplay.className = "countdown-text locked";
-                }
-                return;
-            }
-            
-            const diff = DAY_MS - (now() - coreData.lastClaim);
-            const hoursRemaining = Math.floor(diff / (1000 * 60 * 60));
-            
-            if (diff <= 0) {
-                if (el.countdownDisplay) {
-                    el.countdownDisplay.textContent = txt.ready;
-                    el.countdownDisplay.className = "countdown-text ready";
+            for (let i = 0; i < daysPassed && contract.contractDay <= 60; i++) {
+                contract.contractDay++;
+                
+                const accrualDate = new Date(contract.lastAccrualAt + (oneDayMs * (i + 1)));
+                const wasSunday = accrualDate.getDay() === 0;
+                
+                if (!wasSunday && contract.contractDay <= 60) {
+                    const dailyProfit = calculateDailyProfit(contract.tier, contract.contractDay);
+                    contract.unclaimedBalance += dailyProfit;
+                    contract.totalEarned += dailyProfit;
                 }
                 
-                // MORNING RITUAL (6:00-10:00): Pulse claim button + auto-scroll
-                if (timeCtx.isMorning) {
-                    const claimContainer = document.querySelector('.claim-btn-container');
-                    if (claimContainer && !claimContainer.classList.contains('morning-pulse')) {
-                        claimContainer.classList.add('morning-pulse');
-                    }
-                    // Auto-scroll once per session
-                    const morningScrollDone = sessionStorage.getItem('morningScrollDone');
-                    if (!morningScrollDone) {
-                        performMorningRitual();
-                        sessionStorage.setItem('morningScrollDone', 'true');
-                    }
-                } else {
-                    const claimContainer = document.querySelector('.claim-btn-container');
-                    if (claimContainer) {
-                        claimContainer.classList.remove('morning-pulse');
-                    }
-                }
-            } else {
-                const h = Math.floor(diff / (1000 * 60 * 60));
-                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const s = Math.floor((diff % (1000 * 60)) / 1000);
-                
-                // EVENING URGENCY (>20:00): Red + blinking if < 4h + tab badge
-                if (timeCtx.isEvening && hoursRemaining < 4 && hoursRemaining > 0) {
-                    if (el.countdownDisplay) {
-                        el.countdownDisplay.textContent = `${h}h ${m}m ${s}s`;
-                        el.countdownDisplay.className = "countdown-text urgent";
-                    }
-                    updateEveningUrgencyBadges();
-                } else {
-                    if (el.countdownDisplay) {
-                        el.countdownDisplay.textContent = `${h}h ${m}m ${s}s`;
-                        el.countdownDisplay.className = "countdown-text wait";
-                    }
-                    updateEveningUrgencyBadges();
-                }
-                
-                // Remove morning pulse if not ready
-                const claimContainer = document.querySelector('.claim-btn-container');
-                if (claimContainer) {
-                    claimContainer.classList.remove('morning-pulse');
-                }
+                contract.lastAccrualAt += oneDayMs;
+                hasChanges = true;
             }
             
-            // Saturday Pre-Notification
-            if (timeCtx.isSaturdayEvening) {
-                showSaturdayPreNotification();
+            if (contract.contractDay > 60) {
+                contract.status = 'expired';
+                contract.unclaimedBalance += TIERS[contract.tier].eosBonus;
+                hasChanges = true;
             }
-        }, 1000);
-    }
-    
-    function getHistory() { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }
-    
-    function addHistory(amount) {
-        const list = getHistory();
-        const entry = {
-            date: now(),
-            amount: amount,
-            tx: "0x" + Array.from({length: 20}, () => "0123456789abcdef"[Math.floor(Math.random()*16)]).join("") + "..."
-        };
-        list.unshift(entry);
-        if(list.length > 50) list.pop();
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
-        renderHistory();
-    }
-    
-    function renderHistory() {
-        const list = getHistory();
-        const txt = T();
-        if (!el.historyList) return;
-        el.historyList.innerHTML = "";
-        
-        if(list.length === 0) {
-            el.historyList.innerHTML = `<div class="empty-state">${txt.emptyHist}</div>`;
-            return;
         }
-        
-        list.forEach(item => {
-            const d = new Date(item.date).toLocaleString();
-            const card = document.createElement("div");
-            card.className = "history-card";
-            card.innerHTML = `
-                <div class="h-info"><h4>${txt.histClaimTitle}</h4><small>${d}</small><span class="tx-hash">${item.tx}</span></div>
-                <div class="h-amount">+$${item.amount.toFixed(2)}</div>
-            `;
-            el.historyList.appendChild(card);
-        });
+    });
+    
+    if (hasChanges) {
+        saveState(state);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLAIM LOGIC WITH 60s OVERLAY
+// ═══════════════════════════════════════════════════════════
+
+function canClaim() {
+    if (isSunday()) return false;
+    
+    const state = loadState();
+    const now = Date.now();
+    const cooldownPeriod = 24 * 60 * 60 * 1000;
+    const timeSinceLastClaim = now - (state.user.lastClaimTime || 0);
+    
+    return timeSinceLastClaim >= cooldownPeriod;
+}
+
+function performClaim() {
+    // DEFENSIVE GUARDS
+    const state = loadState();
+    const now = Date.now();
+    const lastClaim = state.user.lastClaimTime || 0;
+    const cooldownPeriod = 24 * 60 * 60 * 1000;
+    const timeSinceLastClaim = now - lastClaim;
+    
+    // GUARD 1: Cooldown
+    if (timeSinceLastClaim < cooldownPeriod) {
+        console.error('[SECURITY] Claim rejected: Cooldown active');
+        showToast(t('cooldownActive', 'فترة الانتظار نشطة', 'Période de refroidissement active'), 'error');
+        return;
     }
     
-    // =========================================================
-    // CLAIM LOGIC (Connected to Career Contract Engine)
-    // =========================================================
-    if (el.claimBtn) {
-        el.claimBtn.onclick = () => {
-            if (el.claimBtn.disabled || !isLeader) return;
-            const txt = T();
-            
-            // SUNDAY LAW: Cannot claim on Sunday
-            if (isSunday()) {
-                showToast(txt.toastErrSun, 'error');
-                return;
-            }
-            
-            // Check 24-hour cooldown
-            if (coreData.lastClaim > 0 && (now() - coreData.lastClaim < DAY_MS)) {
-                showToast(txt.toastErrCool, 'error');
-                return;
-            }
-            
-            // Set critical action in progress
-            setCriticalActionInProgress(true);
-            
-            // OPTIMISTIC UI: Immediate visual feedback
-            el.claimBtn.disabled = true;
-            const span = el.claimBtn.querySelector("span");
-            if (span) span.textContent = "PROCESSING...";
-            
-            // Start claim process - Show Cinematic Overlay
-            state.isClaiming = true;
-            state.claimStartTime = now();
-            saveState();
-            resumeClaim();
-        };
+    // GUARD 2: Sunday lock
+    if (isSunday()) {
+        console.error('[SECURITY] Claim rejected: Sunday lock');
+        showToast(t('sundayLock'), 'error');
+        return;
     }
     
-    function resumeClaim() {
-        // Show Cinematic Claim Overlay
-        const claimOverlayEl = document.getElementById('claimOverlay');
-        if (claimOverlayEl) {
-            claimOverlayEl.classList.remove("hidden");
-        }
-        if (el.claimOverlay) {
-            el.claimOverlay.classList.remove("hidden");
-        }
-        if (!claimOverlayEl && !el.claimOverlay) {
-            console.warn("Claim overlay not found");
-            return;
-        }
-        const circumference = 515;
-        const phases = T().phases;
-        startLiveGraph();
-        
-        const tick = setInterval(() => {
-            const elapsed = Math.floor((now() - state.claimStartTime) / 1000);
-            const timeLeft = CLAIM_PROCESS_TIME - elapsed;
-            if (el.timer) el.timer.textContent = timeLeft > 0 ? timeLeft : 0;
-            if (el.progressRing) {
-                const offset = circumference * (1 - (timeLeft / CLAIM_PROCESS_TIME));
-                el.progressRing.style.strokeDashoffset = -offset;
-            }
-            if (el.phaseText) {
-                const phaseIndex = Math.min(3, Math.floor(elapsed / 15));
-                el.phaseText.textContent = phases[phaseIndex];
-            }
-            if (timeLeft <= 0) {
-                clearInterval(tick);
-                finishClaim();
-            }
-        }, 1000);
+    // GUARD 3: State integrity
+    if (!validateStateChecksum(state)) {
+        console.error('[SECURITY] State corruption detected');
+        showToast(t('securityError', 'خطأ أمني', 'Erreur de sécurité'), 'error');
+        setTimeout(() => location.reload(), 3000);
+        return;
     }
     
-    // =========================================================
-    // LIVE GRAPH ANIMATION
-    // =========================================================
-    let graphAnimFrame;
-    function startLiveGraph() {
-        const canvas = el.liveGraphCanvas;
-        if (!canvas) return;
-        
-        const ctx = canvas.getContext('2d');
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = canvas.offsetWidth * dpr;
-        canvas.height = canvas.offsetHeight * dpr;
-        ctx.scale(dpr, dpr);
-        
-        const width = canvas.offsetWidth;
-        const height = canvas.offsetHeight;
-        const points = 60;
-        let dataPoints = Array(points).fill(0).map(() => Math.random() * 0.5 + 0.3);
-        
-        function animate() {
-            dataPoints.shift();
-            dataPoints.push(Math.random() * 0.5 + 0.3);
-            ctx.clearRect(0, 0, width, height);
-            
-            const gradient = ctx.createLinearGradient(0, 0, 0, height);
-            gradient.addColorStop(0, 'rgba(0, 255, 136, 0.4)');
-            gradient.addColorStop(1, 'rgba(0, 255, 136, 0)');
-            
-            ctx.beginPath();
-            ctx.moveTo(0, height);
-            for (let i = 0; i < points; i++) {
-                const x = (i / (points - 1)) * width;
-                const y = height - (dataPoints[i] * height);
-                ctx.lineTo(x, y);
-            }
-            ctx.lineTo(width, height);
-            ctx.closePath();
-            ctx.fillStyle = gradient;
-            ctx.fill();
-            
-            ctx.beginPath();
-            ctx.moveTo(0, height - (dataPoints[0] * height));
-            for (let i = 1; i < points; i++) {
-                const x = (i / (points - 1)) * width;
-                const y = height - (dataPoints[i] * height);
-                ctx.lineTo(x, y);
-            }
-            ctx.strokeStyle = '#00ff88';
-            ctx.lineWidth = 2.5;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = '#00ff88';
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-            
-            graphAnimFrame = requestAnimationFrame(animate);
+    // Process contracts first
+    processContracts();
+    
+    // Calculate total claimable
+    let totalClaimable = 0;
+    const updatedState = loadState();
+    updatedState.user.activeContracts.forEach(contract => {
+        if (contract.status === 'active' || contract.status === 'expired') {
+            totalClaimable += contract.unclaimedBalance;
         }
-        animate();
+    });
+    
+    if (totalClaimable === 0) {
+        showToast(t('noRewards', 'لا توجد مكافآت', 'Pas de récompenses'), 'info');
+        return;
     }
     
-    function stopLiveGraph() {
-        if (graphAnimFrame) cancelAnimationFrame(graphAnimFrame);
-    }
+    // Show 60-second overlay
+    show60SecondOverlay(totalClaimable);
+}
+
+function show60SecondOverlay(amount) {
+    const overlay = document.getElementById('claimOverlay');
+    const timerEl = document.getElementById('claimTimerSeconds');
+    const messageEl = document.getElementById('claimStatusMessage');
+    const progressRing = document.getElementById('progressRing');
+    const progressFill = document.getElementById('claimProgressFill');
     
-    /**
-     * Finish claim process - adds profit to balance
-     */
-    function finishClaim() {
-        // Validate claim conditions
-        if (!state.isClaiming || !isLeader || isSunday() || 
-            (coreData.lastClaim > 0 && (now() - coreData.lastClaim < DAY_MS))) {
-            console.error("Claim blocked");
-            setCriticalActionInProgress(false);
-            return;
-        }
-        
-        stopLiveGraph();
-        const claimOverlayEl = document.getElementById('claimOverlay');
-        if (claimOverlayEl) claimOverlayEl.classList.add("hidden");
-        if (el.claimOverlay) el.claimOverlay.classList.add("hidden");
-        
-        // Process claim using Career Contract Engine
-        const success = processClaim();
-        
-        if (success) {
-            const dailyProfit = calculateTotalDailyProfit();
-            addHistory(dailyProfit);
-            showToast(T().toastSuccess, 'success');
-            
-            // Experience Effect: Success Burst
-            triggerSuccessBurst();
-            
-            // Context-aware navigation: Suggest Wallet tab after claim
-            setTimeout(() => {
-                const suggestedTab = getSuggestedTab();
-                if (suggestedTab === 'wallet') {
-                    // Subtle hint (optional auto-switch after 2 seconds)
-                    // switchTab('wallet');
-                }
-            }, 2000);
-        }
-        
-        // Reset claim state
-        state.isClaiming = false;
-        state.claimStartTime = 0;
-        setCriticalActionInProgress(false);
-        saveState();
-        
-        // Update UI
-        updateUI();
-    }
+    overlay.classList.add('active');
     
-    // =========================================================
-    // MARKET SIMULATION
-    // =========================================================
-    const CRYPTO_ASSETS = [
-        { symbol: 'BTC', name: 'Bitcoin', basePrice: 45000, icon: 'fa-brands fa-bitcoin', color: '#f7931a' },
-        { symbol: 'ETH', name: 'Ethereum', basePrice: 2800, icon: 'fa-brands fa-ethereum', color: '#627eea' },
-        { symbol: 'SOL', name: 'Solana', basePrice: 120, icon: 'fa-solid fa-coins', color: '#14f195' },
-        { symbol: 'BNB', name: 'Binance Coin', basePrice: 350, icon: 'fa-solid fa-coins', color: '#f0b90b' },
-        { symbol: 'XRP', name: 'Ripple', basePrice: 0.65, icon: 'fa-solid fa-coins', color: '#23292f' },
-        { symbol: 'ADA', name: 'Cardano', basePrice: 0.55, icon: 'fa-solid fa-coins', color: '#0033ad' }
+    let timeRemaining = 60;
+    const circumference = 2 * Math.PI * 90; // radius = 90
+    
+    // Messages for each 20-second phase
+    const messages = [
+        t('verifyingSession'),
+        t('processingTransaction'),
+        t('finalizingReward')
     ];
     
-    let currentAsset = null;
-    let marketPrice = 0;
-    let marketLastPrice = 0;
+    const claimInterval = setInterval(() => {
+        timeRemaining--;
+        timerEl.textContent = timeRemaining;
+        
+        // Update progress ring
+        const offset = circumference - (circumference * (60 - timeRemaining) / 60);
+        progressRing.style.strokeDashoffset = offset;
+        
+        // Update progress bar
+        const progress = ((60 - timeRemaining) / 60) * 100;
+        progressFill.style.width = progress + '%';
+        
+        // Update message every 20 seconds
+        if (timeRemaining === 40) {
+            messageEl.textContent = messages[1];
+        } else if (timeRemaining === 20) {
+            messageEl.textContent = messages[2];
+        }
+        
+        if (timeRemaining <= 0) {
+            clearInterval(claimInterval);
+            completeClaim(amount);
+            overlay.classList.remove('active');
+        }
+    }, 1000);
+}
+
+function completeClaim(amount) {
+    const state = loadState();
+    const now = Date.now();
     
-    function getAssetByDay() {
-        const dayIndex = new Date().getDay();
-        const assetIndex = dayIndex === 0 ? 5 : (dayIndex - 1) % CRYPTO_ASSETS.length;
-        return CRYPTO_ASSETS[assetIndex];
+    // Clear unclaimed balances
+    state.user.activeContracts.forEach(contract => {
+        if (contract.status === 'active' || contract.status === 'expired') {
+            contract.unclaimedBalance = 0;
+        }
+    });
+    
+    // Add to balance
+    state.user.balance += amount;
+    state.user.totalEarned += amount;
+    state.user.lastClaimTime = now;
+    
+    // Store claim timestamp
+    if (!state.user.claimTimestamps) state.user.claimTimestamps = [];
+    state.user.claimTimestamps.unshift(now);
+    state.user.claimTimestamps = state.user.claimTimestamps.slice(0, 10);
+    
+    // Log claim history
+    if (!state.user.claimHistory) state.user.claimHistory = [];
+    state.user.claimHistory.unshift({
+        id: 'claim_' + now + '_' + Math.random().toString(36).substr(2, 4),
+        timestamp: now,
+        amount: amount,
+        txHash: generateFakeTxHash(),
+        status: 'completed'
+    });
+    
+    if (state.user.claimHistory.length > 100) {
+        state.user.claimHistory = state.user.claimHistory.slice(0, 100);
     }
     
-    function updateAssetDisplay(asset) {
-        if (!asset) return;
-        
-        if (el.coinNameDisplay) {
-            el.coinNameDisplay.textContent = `${asset.symbol} / USD`;
-        }
-        if (el.coinName && el.coinName !== el.coinNameDisplay) {
-            el.coinName.textContent = `${asset.symbol} / USD`;
-        }
-        
-        if (el.coinIcon) {
-            const iconElement = el.coinIcon.querySelector('i');
-            if (iconElement) {
-                iconElement.className = asset.icon;
-                iconElement.style.color = asset.color || '#000';
-                iconElement.style.fontSize = '20px';
-            }
-        }
+    saveState(state);
+    updateUI();
+    triggerClaimSuccess(amount);
+    showToast(t('claimSuccess', 'تم استلام المكافأة!', 'Récompense réclamée!') + ' $' + amount.toFixed(2), 'success');
+    
+    // Check for lucky task (30% chance)
+    checkLuckyTaskTrigger();
+}
+
+function generateFakeTxHash() {
+    return '0x' + Array.from({length: 64}, () => 
+        '0123456789abcdef'[Math.floor(Math.random() * 16)]
+    ).join('');
+}
+
+function triggerClaimSuccess(amount) {
+    // Success burst effect
+    const burst = document.createElement('div');
+    burst.className = 'claim-success-burst';
+    document.body.appendChild(burst);
+    
+    setTimeout(() => burst.remove(), 1000);
+    
+    // Balance update animation
+    const balanceEl = document.getElementById('balance');
+    if (balanceEl) {
+        balanceEl.classList.add('updating');
+        setTimeout(() => balanceEl.classList.remove('updating'), 600);
     }
     
-    function startMarketSimulation() {
-        currentAsset = getAssetByDay();
-        marketPrice = currentAsset.basePrice;
-        marketLastPrice = marketPrice;
-        updateAssetDisplay(currentAsset);
+    // Haptic feedback
+    if ('vibrate' in navigator) {
+        navigator.vibrate([50, 30, 50]);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LUCKY TASK SYSTEM (30% RANDOM)
+// ═══════════════════════════════════════════════════════════
+
+function checkLuckyTaskTrigger() {
+    const state = loadState();
+    
+    // Don't show if user already has a shield
+    if (state.user.protectionCards > 0) return;
+    
+    // 30% chance
+    if (Math.random() < 0.30) {
+        showLuckyTaskButton();
+    }
+}
+
+function showLuckyTaskButton() {
+    const btn = document.getElementById('luckyTaskBtn');
+    btn.style.display = 'flex';
+}
+
+function hideLuckyTaskButton() {
+    const btn = document.getElementById('luckyTaskBtn');
+    btn.style.display = 'none';
+}
+
+function openTaskModal() {
+    const modal = document.getElementById('taskModal');
+    modal.classList.add('active');
+}
+
+function closeTaskModal() {
+    const modal = document.getElementById('taskModal');
+    modal.classList.remove('active');
+    
+    // Reset file input
+    const fileInput = document.getElementById('taskFileInput');
+    fileInput.value = '';
+    
+    const uploadZone = document.getElementById('taskUploadZone');
+    uploadZone.classList.remove('has-file');
+    
+    const submitBtn = document.getElementById('btnTaskSubmit');
+    submitBtn.disabled = true;
+}
+
+function handleTaskFileUpload(file) {
+    if (!file) return;
+    
+    const uploadZone = document.getElementById('taskUploadZone');
+    uploadZone.classList.add('has-file');
+    
+    const submitBtn = document.getElementById('btnTaskSubmit');
+    submitBtn.disabled = false;
+    
+    // Show filename
+    uploadZone.querySelector('p').textContent = file.name;
+}
+
+function submitTask() {
+    const state = loadState();
+    
+    // Grant shield (admin approval simulation - always grants for demo)
+    if (state.user.protectionCards === 0) {
+        state.user.protectionCards = 1;
+        state.user.cardIssuedAt = Date.now();
+        saveState(state);
         
-        setInterval(() => {
-            const today = new Date().getDay();
-            const isSunday = today === 0;
-            
-            // SUNDAY LOGIC: MARKET CLOSED - FLATLINE
-            if (isSunday) {
-                if (el.marketPrice) {
-                    el.marketPrice.textContent = "FROZEN";
-                    el.marketPrice.style.color = "#888";
-                }
-                if (el.bnbPrice) {
-                    el.bnbPrice.textContent = "FROZEN";
-                    el.bnbPrice.style.color = "#888";
-                }
-                if (el.bnbChange) {
-                    el.bnbChange.textContent = "0.00%";
-                    el.bnbChange.className = "change";
-                    el.bnbChange.style.color = "#888";
-                }
-                if (el.coinNameDisplay) {
-                    el.coinNameDisplay.textContent = "MARKET CLOSED";
-                }
-                return;
-            }
-            
-            // WEEKDAY LOGIC: Dynamic Asset Rotation & Realistic Price Movement
-            const newAsset = getAssetByDay();
-            if (newAsset.symbol !== currentAsset.symbol) {
-                currentAsset = newAsset;
-                marketPrice = currentAsset.basePrice;
-                marketLastPrice = marketPrice;
-                updateAssetDisplay(currentAsset);
-            }
-            
-            marketLastPrice = marketPrice;
-            
-            const volatility = currentAsset.symbol === 'BTC' ? 0.02 : 
-                              currentAsset.symbol === 'ETH' ? 0.015 :
-                              currentAsset.symbol === 'SOL' ? 0.025 :
-                              currentAsset.symbol === 'BNB' ? 0.01 :
-                              currentAsset.symbol === 'XRP' ? 0.01 : 0.008;
-            
-            const randomFactor = (Math.random() - 0.5) * 2;
-            const priceChange = marketPrice * volatility * randomFactor;
-            marketPrice += priceChange;
-            
-            if (marketPrice < 0.01) marketPrice = 0.01;
-            
-            const percentChange = ((marketPrice - marketLastPrice) / marketLastPrice) * 100;
-            const percentDisplay = Math.abs(percentChange).toFixed(2);
-            
-            if (el.marketPrice) {
-                el.marketPrice.textContent = marketPrice.toFixed(2);
-            }
-            if (el.bnbPrice && el.bnbPrice !== el.marketPrice) {
-                el.bnbPrice.textContent = marketPrice.toFixed(2);
-            }
-            
-            if (el.bnbChange) {
-                const sign = percentChange >= 0 ? '+' : '';
-                el.bnbChange.textContent = `${sign}${percentDisplay}%`;
-                
-                if (percentChange > 0) {
-                    el.bnbChange.className = "change up";
-                    if (el.marketPrice) el.marketPrice.style.color = "#00ff88";
-                    if (el.bnbPrice) el.bnbPrice.style.color = "#00ff88";
-                    el.bnbChange.style.color = "#00ff88";
-                } else if (percentChange < 0) {
-                    el.bnbChange.className = "change down";
-                    if (el.marketPrice) el.marketPrice.style.color = "#ff4444";
-                    if (el.bnbPrice) el.bnbPrice.style.color = "#ff4444";
-                    el.bnbChange.style.color = "#ff4444";
-                } else {
-                    el.bnbChange.className = "change";
-                    if (el.marketPrice) el.marketPrice.style.color = "#fff";
-                    if (el.bnbPrice) el.bnbPrice.style.color = "#fff";
-                    el.bnbChange.style.color = "#fff";
-                }
-            }
-        }, 3000);
+        updateShieldIndicator();
+        closeTaskModal();
+        hideLuckyTaskButton();
+        
+        showToast(t('shieldReceived', 'تم منحك درع الحماية!', 'Bouclier de protection reçu!'), 'success');
+        triggerShieldReceived();
+    }
+}
+
+function triggerShieldReceived() {
+    const indicator = document.createElement('div');
+    indicator.className = 'shield-saved-indicator';
+    indicator.innerHTML = '<div>🛡️ ' + t('shieldReceived', 'تم استلام الدرع!', 'Bouclier Reçu!') + '</div>';
+    document.body.appendChild(indicator);
+    
+    setTimeout(() => indicator.remove(), 3000);
+    
+    if ('vibrate' in navigator) {
+        navigator.vibrate([30, 20, 30]);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MARKET SPECTRUM ANIMATION
+// ═══════════════════════════════════════════════════════════
+
+let marketPrice = 1.0000;
+let marketTrend = 1; // 1 = up, -1 = down
+let spectrumBars = [];
+
+function initMarketSpectrum() {
+    const canvas = document.getElementById('spectrumCanvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Initialize bars
+    const barCount = 60;
+    const barWidth = width / barCount;
+    
+    for (let i = 0; i < barCount; i++) {
+        spectrumBars.push({
+            height: Math.random() * height * 0.5 + height * 0.2,
+            velocity: (Math.random() - 0.5) * 2
+        });
     }
     
-    // =========================================================
-    // ACTIVITY FEED
-    // =========================================================
-    function startActivityFeed() {
-        let activityTimer;
+    function animateSpectrum() {
+        ctx.clearRect(0, 0, width, height);
         
-        function generateActivity() {
-            if (document.hidden) return;
+        // Update and draw bars
+        spectrumBars.forEach((bar, i) => {
+            // Update height with wave motion
+            bar.velocity += (Math.random() - 0.5) * 0.5;
+            bar.velocity *= 0.95; // Damping
+            bar.height += bar.velocity;
             
-            const activities = [
-                { type: "contract", icon: "fa-file-contract" },
-                { type: "deposit", icon: "fa-coins" },
-                { type: "activate", icon: "fa-check-circle" }
-            ];
+            // Keep within bounds
+            if (bar.height < height * 0.2) {
+                bar.height = height * 0.2;
+                bar.velocity *= -0.5;
+            }
+            if (bar.height > height * 0.8) {
+                bar.height = height * 0.8;
+                bar.velocity *= -0.5;
+            }
             
-            const activity = activities[Math.floor(Math.random() * activities.length)];
-            const amount = (Math.random() * 9.5 + 0.5).toFixed(2);
-            const wallet = `0x${Math.random().toString(16).substr(2, 2).toUpperCase()}...${Math.random().toString(16).substr(2, 2).toUpperCase()}`;
-            
-            let message = '';
-            if (activity.type === 'contract') {
-                message = `User <strong>${wallet}</strong> started a contract (<span class="activity-amount">${amount} USDT</span>)`;
-            } else if (activity.type === 'deposit') {
-                message = `New Deposit: <span class="activity-amount">${amount} USDT</span>`;
+            // Color based on market trend
+            const gradient = ctx.createLinearGradient(0, height, 0, 0);
+            if (marketTrend === 1) {
+                gradient.addColorStop(0, 'rgba(0, 255, 136, 0.2)');
+                gradient.addColorStop(1, 'rgba(0, 255, 136, 0.8)');
             } else {
-                message = `Contract Activated: <span class="activity-amount">${amount} USDT</span>`;
+                gradient.addColorStop(0, 'rgba(255, 71, 87, 0.2)');
+                gradient.addColorStop(1, 'rgba(255, 71, 87, 0.8)');
             }
             
-            showActivityNotification(activity.icon, message);
-            
-            const nextInterval = Math.random() * 30000 + 15000;
-            activityTimer = setTimeout(generateActivity, nextInterval);
-        }
-        
-        function showActivityNotification(icon, message) {
-            if (!el.activityFeed) return;
-            const notification = document.createElement('div');
-            notification.className = 'activity-notification';
-            notification.innerHTML = `
-                <div class="activity-icon"><i class="fa-solid ${icon}"></i></div>
-                <div class="activity-text">${message}</div>
-            `;
-            
-            el.activityFeed.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.classList.add('fade-out');
-                setTimeout(() => notification.remove(), 500);
-            }, 5000);
-        }
-        
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                clearTimeout(activityTimer);
-            } else {
-                const resumeDelay = Math.random() * 30000 + 15000;
-                activityTimer = setTimeout(generateActivity, resumeDelay);
-            }
+            ctx.fillStyle = gradient;
+            ctx.fillRect(i * barWidth, height - bar.height, barWidth - 1, bar.height);
         });
         
-        const initialDelay = Math.random() * 20000 + 10000;
-        activityTimer = setTimeout(generateActivity, initialDelay);
+        spectrumAnimationFrame = requestAnimationFrame(animateSpectrum);
     }
     
-    // =========================================================
-    // SHIELD TASK 30% RNG LOGIC
-    // =========================================================
-    /**
-     * Initialize Shield Task RNG (30% chance if user has 0 shields)
-     */
-    function initShieldTaskRNG() {
-        // Check if user already has shield
-        if (localStorage.getItem('hasShield') === 'true') {
-            state.hasShield = true;
-            saveState();
-            const shieldContainer = document.getElementById('shieldTaskContainer');
-            if (shieldContainer) {
-                shieldContainer.style.display = 'none';
-            }
-            if (el.uploadTaskBtn) {
-                el.uploadTaskBtn.disabled = true;
-                el.uploadTaskBtn.style.display = 'none';
-            }
-            if (el.insuranceBtn) {
-                el.insuranceBtn.style.color = '#FFD700';
-                el.insuranceBtn.style.textShadow = '0 0 15px #FFD700';
-            }
-            return;
-        }
-        
-        // SHIELD RNG: 30% chance to show button
-        const isLucky = Math.random() < 0.30;
-        
-        const shieldContainer = document.getElementById('shieldTaskContainer');
-        if (shieldContainer) {
-            if (isLucky) {
-                shieldContainer.style.display = 'block';
-                if (el.uploadTaskBtn) {
-                    el.uploadTaskBtn.style.display = 'block';
-                    if (el.uploadTaskText) {
-                        el.uploadTaskText.innerHTML = '📸 Upload Task <span style="color: #FFD700; font-size: 10px; margin-left: 5px;">✨ Special Offer</span>';
-                    }
-                    el.uploadTaskBtn.disabled = false;
-                }
-            } else {
-                shieldContainer.style.display = 'none';
-                if (el.uploadTaskBtn) {
-                    el.uploadTaskBtn.style.display = 'none';
-                }
-            }
-        }
-    }
-    
-    function checkAndApplyShieldStatus() {
-        const adminApprovedShield = localStorage.getItem('hasShield');
-        const hadShieldBefore = state.hasShield;
-        
-        if (adminApprovedShield === 'true') {
-            state.hasShield = true;
-            saveState();
-            
-            // Trigger shield protection modal if shield was just activated
-            if (!hadShieldBefore && state.hasShield) {
-                sessionStorage.setItem('shieldSaved', 'true');
-                triggerShieldRelief();
-            }
-            
-            if (el.insuranceBtn) {
-                el.insuranceBtn.classList.add('active');
-                el.insuranceBtn.style.color = '#FFD700';
-                el.insuranceBtn.style.textShadow = '0 0 15px #FFD700';
-                el.insuranceBtn.style.animation = 'shieldGlow 2s infinite';
-            }
-            
-            if (el.uploadTaskBtn) {
-                el.uploadTaskBtn.disabled = true;
-                el.uploadTaskBtn.style.background = 'linear-gradient(45deg, #FFD700, #DAA520)';
-                el.uploadTaskBtn.style.color = '#000';
-                el.uploadTaskBtn.style.border = '2px solid #FFD700';
-                el.uploadTaskBtn.style.cursor = 'not-allowed';
-                if (el.uploadTaskText) {
-                    el.uploadTaskText.textContent = 'Shield Active 🛡️';
-                }
-            }
-        } else {
-            if (el.insuranceBtn) {
-                el.insuranceBtn.classList.remove('active');
-                el.insuranceBtn.style.color = '#888';
-                el.insuranceBtn.style.textShadow = 'none';
-                el.insuranceBtn.style.animation = '';
-            }
-            if (el.uploadTaskBtn && !state.hasShield) {
-                const wasShown = el.uploadTaskBtn.style.display !== 'none';
-                if (wasShown) {
-                    el.uploadTaskBtn.disabled = false;
-                    el.uploadTaskBtn.style.background = '';
-                    el.uploadTaskBtn.style.color = '';
-                    el.uploadTaskBtn.style.border = '';
-                    el.uploadTaskBtn.style.cursor = '';
-                    if (el.uploadTaskText) {
-                        el.uploadTaskText.innerHTML = '📸 Upload Task <span style="color: #FFD700; font-size: 10px; margin-left: 5px;">✨ Special Offer</span>';
-                    }
-                }
-            }
-        }
-    }
-    
-    // =========================================================
-    // CAMERA UPLOAD SIMULATION
-    // =========================================================
-    function simulateUpload(btn) {
-        if (!btn) btn = el.uploadTaskBtn;
-        if (!btn) return;
-        
-        if (state.hasShield || localStorage.getItem('hasShield') === 'true') {
-            showToast('You already have a shield! Max 1 per user.', 'error');
-            return;
-        }
-        
-        // Show upload modal
-        if (el.uploadModal) {
-            el.uploadModal.classList.remove('hidden');
-        }
-        
-        const btnText = el.uploadTaskText || btn.querySelector('#uploadTaskText') || btn.querySelector('span');
-        if (!btnText) return;
-        
-        btn.disabled = true;
-        
-        // Step 1: Camera
-        const step1 = document.getElementById('step1');
-        const step2 = document.getElementById('step2');
-        const step3 = document.getElementById('step3');
-        const step4 = document.getElementById('step4');
-        const progressFill = document.getElementById('uploadProgressFill');
-        const statusText = document.getElementById('uploadStatusText');
-        
-        if (step1) step1.classList.add('active');
-        if (statusText) statusText.textContent = 'Connecting to Camera...';
-        if (progressFill) progressFill.style.width = '25%';
-        
-        setTimeout(() => {
-            // Step 2: Scanning
-            if (step1) step1.classList.remove('active');
-            if (step1) step1.classList.add('completed');
-            if (step2) step2.classList.add('active');
-            if (statusText) statusText.textContent = 'Scanning Receipt...';
-            if (progressFill) progressFill.style.width = '50%';
-            
-            setTimeout(() => {
-                // Step 3: Uploading
-                if (step2) step2.classList.remove('active');
-                if (step2) step2.classList.add('completed');
-                if (step3) step3.classList.add('active');
-                if (statusText) statusText.textContent = 'Uploading...';
-                if (progressFill) progressFill.style.width = '75%';
-                
-                setTimeout(() => {
-                    // Step 4: Sent to Admin
-                    if (step3) step3.classList.remove('active');
-                    if (step3) step3.classList.add('completed');
-                    if (step4) step4.classList.add('completed');
-                    if (statusText) statusText.textContent = '✅ Sent to Admin for Review';
-                    if (progressFill) progressFill.style.width = '100%';
-                    
-                    state.taskSubmitted = true;
-                    saveState();
-                    
-                    const pendingTasks = JSON.parse(localStorage.getItem('gd_pending_tasks') || '[]');
-                    pendingTasks.push({
-                        userId: `User_${state.refCode}`,
-                        timestamp: Date.now(),
-                        screenshot: 'placeholder'
-                    });
-                    localStorage.setItem('gd_pending_tasks', JSON.stringify(pendingTasks));
-                    
-                    setTimeout(() => {
-                        if (el.uploadModal) el.uploadModal.classList.add('hidden');
-                        showToast('Screenshot submitted! Awaiting admin approval...', 'success');
-                    }, 1500);
-                }, 1000);
-            }, 1000);
-        }, 1000);
-    }
-    
-    window.simulateUpload = simulateUpload;
-    
-    // =========================================================
-    // WALLET CONNECT SIMULATION
-    // =========================================================
-    function initWalletConnection() {
-        const walletConnected = localStorage.getItem('walletConnected');
-        const walletAddress = localStorage.getItem('gd_wallet_address');
-        if (walletConnected === 'true' && walletAddress) {
-            const maskedAddress = walletAddress.slice(0, 4) + '...' + walletAddress.slice(-2);
-            updateWalletUI(maskedAddress);
-        }
-    }
-    
-    function connectWallet() {
-        if (!el.walletConnectBtn || !el.walletConnectText) return;
-        
-        if (localStorage.getItem('walletConnected') === 'true') {
-            if (confirm('Disconnect wallet?')) {
-                localStorage.removeItem('gd_wallet_address');
-                localStorage.removeItem('walletConnected');
-                el.walletConnectBtn.classList.remove('connected');
-                el.walletConnectText.textContent = 'Connect Wallet';
-                el.walletConnectText.style.color = '';
-                showToast('Wallet Disconnected', 'error');
-            }
-            return;
-        }
-        
-        el.walletConnectBtn.disabled = true;
-        el.walletConnectText.textContent = 'Connecting...';
-        el.walletConnectBtn.style.opacity = '0.7';
-        
-        setTimeout(() => {
-            const address = '0x' + Array.from({length: 40}, () => 
-                '0123456789abcdef'[Math.floor(Math.random() * 16)]
-            ).join('');
-            const maskedAddress = address.slice(0, 4) + '...' + address.slice(-2);
-            
-            localStorage.setItem('gd_wallet_address', address);
-            localStorage.setItem('walletConnected', 'true');
-            
-            el.walletConnectBtn.classList.add('connected');
-            el.walletConnectText.textContent = maskedAddress;
-            el.walletConnectText.style.color = '#00ff88';
-            el.walletConnectBtn.disabled = false;
-            el.walletConnectBtn.style.opacity = '1';
-            
-            showToast('Wallet Connected Successfully', 'success');
-        }, 1500);
-    }
-    
-    function updateWalletUI(maskedAddress) {
-        if (!el.walletConnectBtn || !el.walletConnectText) return;
-        el.walletConnectBtn.classList.add('connected');
-        el.walletConnectText.textContent = maskedAddress;
-        el.walletConnectText.style.color = '#00ff88';
-        el.walletConnectBtn.disabled = false;
-        el.walletConnectBtn.style.opacity = '1';
-    }
-    
-    // =========================================================
-    // CAREER CONTRACTS - SELECT PLAN FUNCTION
-    // =========================================================
-    function selectPlan(amount, tierName, isLocked) {
-        const today = new Date().getDay();
-        if (today === 0) {
-            showToast('⛔ Market closed on Sundays. Please try again tomorrow.', 'error');
-            return;
-        }
-        
-        if (isLocked === true) {
-            showToast('⛔ This plan opens in Phase 2 (Day 30)', 'error');
-            return;
-        }
-        
-        if (el.depositModal) {
-            el.depositModalTitle.textContent = `Activate ${tierName}`;
-            el.depositAmount.textContent = `$${amount}`;
-            el.depositTxid.value = '';
-            el.depositModal.classList.remove('hidden');
-        }
-    }
-    
-    window.selectPlan = selectPlan;
-    
-    // =========================================================
-    // DEPOSIT MODAL LOGIC
-    // =========================================================
-    function initDepositModal() {
-        if (el.closeDepositBtn) {
-            el.closeDepositBtn.onclick = () => {
-                if (el.depositModal) el.depositModal.classList.add('hidden');
-            };
-        }
-        
-        if (el.depositModal) {
-            el.depositModal.onclick = (e) => {
-                if (e.target === el.depositModal) {
-                    el.depositModal.classList.add('hidden');
-                }
-            };
-        }
-        
-        if (el.copyWalletBtn) {
-            el.copyWalletBtn.onclick = () => {
-                const address = el.depositWalletAddress.textContent;
-                navigator.clipboard.writeText(address).then(() => {
-                    showToast('Wallet address copied!', 'success');
-                });
-            };
-        }
-        
-        if (el.confirmDepositBtn) {
-            el.confirmDepositBtn.onclick = () => {
-                const txid = el.depositTxid.value.trim();
-                if (!txid) {
-                    showToast('Please enter a transaction hash (TXID)', 'error');
-                    return;
-                }
-                
-                // Set critical action
-                setCriticalActionInProgress(true);
-                
-                // OPTIMISTIC UI: Disable button and show processing
-                el.confirmDepositBtn.disabled = true;
-                el.confirmDepositBtn.textContent = 'Processing...';
-                
-                const amountText = el.depositAmount.textContent;
-                const amount = parseInt(amountText.replace('$', ''));
-                const tierName = el.depositModalTitle.textContent.replace('Activate ', '');
-                
-                const userId = `User_${state.refCode || '123'}`;
-                
-                const pendingDeposits = JSON.parse(localStorage.getItem('pending_deposits') || '[]');
-                
-                pendingDeposits.push({
-                    user: userId,
-                    tier: tierName,
-                    amount: amount,
-                    txid: txid,
-                    status: 'pending',
-                    date: new Date().toISOString()
-                });
-                
-                localStorage.setItem('pending_deposits', JSON.stringify(pendingDeposits));
-                
-                // Reset button
-                setTimeout(() => {
-                    el.confirmDepositBtn.disabled = false;
-                    el.confirmDepositBtn.textContent = 'Confirm Payment';
-                    setCriticalActionInProgress(false);
-                }, 1000);
-                
-                el.depositModal.classList.add('hidden');
-                showToast('⏳ Request Sent! Waiting for Admin Approval.', 'success');
-            };
-        }
-    }
-    
-    // =========================================================
-    // REFERRAL LOGIC
-    // =========================================================
-    function initReferralSection() {
-        const referrals = parseInt(localStorage.getItem('referrals') || '0');
-        if (el.referralCount) {
-            el.referralCount.textContent = referrals;
-        }
-        
-        if (el.copyReferralBtn) {
-            el.copyReferralBtn.onclick = () => {
-                const userId = `User_${state.refCode || '123'}`;
-                const referralLink = `https://nexcareer.io/?ref=${userId}`;
-                
-                navigator.clipboard.writeText(referralLink).then(() => {
-                    showToast('Referral link copied!', 'success');
-                });
-            };
-        }
-    }
-    
-    // =========================================================
-    // UPDATE BALANCE FROM LOCALSTORAGE (ADMIN SYNC)
-    // =========================================================
-    function updateBalanceFromStorage() {
-        const totalBalance = parseFloat(localStorage.getItem('totalBalance') || '0');
-        
-        if (totalBalance > 0 && totalBalance !== coreData.balance) {
-            coreData.balance = totalBalance;
-            saveCoreData();
-        }
-        
-        // Update all balance displays (Unified IDs)
-        if (el.balanceDisplay) {
-            el.balanceDisplay.textContent = `$${coreData.balance.toFixed(2)}`;
-        }
-        if (el.balance) {
-            el.balance.textContent = `$${coreData.balance.toFixed(2)}`;
-        }
-        if (el.walletPageBalance) {
-            el.walletPageBalance.textContent = `$${coreData.balance.toFixed(2)}`;
-        }
-        if (el.totalProfit) {
-            el.totalProfit.textContent = `$${coreData.totalEarned.toFixed(2)}`;
-        }
-    }
-    
-    // =========================================================
-    // SMART DEFAULTS & NAVIGATION (Context-Aware)
-    // =========================================================
-    
-    /**
-     * Determine suggested tab based on user context
-     */
-    function getSuggestedTab() {
-        // If no contracts active, suggest Invest
-        if (coreData.activeContracts.length === 0) {
-            return 'invest';
-        }
-        
-        // If claim just completed, suggest Wallet
-        const timeSinceClaim = now() - coreData.lastClaim;
-        if (timeSinceClaim < 60000 && timeSinceClaim > 0) { // Within last minute
-            return 'wallet';
-        }
-        
-        // If claim is ready, suggest Home
-        const diff = DAY_MS - (now() - coreData.lastClaim);
-        if (diff <= 0 && !isSunday()) {
-            return 'home';
-        }
-        
-        // Default to current tab or home
-        return 'home';
-    }
-    
-    /**
-     * Apply dynamic info prioritization using CSS order
-     */
-    function prioritizeUrgentActions() {
-        const timeCtx = getTimeContext();
-        const diff = DAY_MS - (now() - coreData.lastClaim);
-        const hoursRemaining = Math.floor(diff / (1000 * 60 * 60));
-        
-        const claimContainer = document.querySelector('.claim-btn-container');
-        const marketCard = document.querySelector('.market-card');
-        const bottomStats = document.querySelector('.bottom-stats');
-        
-        if (claimContainer) {
-            if (diff <= 0 && !isSunday()) {
-                // Claim ready - prioritize it
-                claimContainer.style.order = '-1';
-            } else if (timeCtx.isEvening && hoursRemaining < 4 && hoursRemaining > 0) {
-                // Evening urgency - prioritize claim
-                claimContainer.style.order = '-1';
-            } else {
-                claimContainer.style.order = '0';
-            }
-        }
-    }
-    
-    /**
-     * Accidental Navigation Protection
-     */
-    let criticalActionInProgress = false;
-    
-    function setCriticalActionInProgress(value) {
-        criticalActionInProgress = value;
-        sessionStorage.setItem('criticalActionInProgress', value ? 'true' : 'false');
-    }
-    
-    function checkCriticalAction() {
-        const stored = sessionStorage.getItem('criticalActionInProgress');
-        if (stored === 'true') {
-            criticalActionInProgress = true;
-        }
-    }
-    
-    function protectNavigation(e) {
-        if (criticalActionInProgress) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (confirm('A critical action is in progress. Are you sure you want to leave?')) {
-                setCriticalActionInProgress(false);
-                return true;
-            }
-            return false;
-        }
-        return true;
-    }
-    
-    // =========================================================
-    // TAB SWITCHING SYSTEM (Enhanced with Context-Aware)
-    // =========================================================
-    function switchTab(tabName) {
-        // Navigation protection
-        if (criticalActionInProgress) {
-            if (!confirm('A critical action is in progress. Switch tabs anyway?')) {
-                return;
-            }
-            setCriticalActionInProgress(false);
-        }
-        
-        const validTabs = ['home', 'invest', 'wallet', 'team'];
-        if (!validTabs.includes(tabName)) {
-            // Use context-aware suggestion
-            tabName = getSuggestedTab();
-        }
-        
-        const sections = ['home-section', 'invest-section', 'wallet-section', 'team-section'];
-        sections.forEach(sectionId => {
-            const section = document.getElementById(sectionId);
-            if (section) {
-                section.style.display = 'none';
-            }
-        });
-        
-        const selectedSection = document.getElementById(`${tabName}-section`);
-        if (selectedSection) {
-            selectedSection.style.display = 'block';
-        }
-        
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(item => {
-            item.classList.remove('active');
-            if (item.dataset.tab === tabName) {
-                item.classList.add('active');
-            }
-        });
-        
-        if (el.sidebar) {
-            el.sidebar.classList.remove("open");
-        }
-        if (el.overlay) {
-            el.overlay.classList.remove("active");
-        }
-        
-        // Apply dynamic prioritization after tab switch
-        setTimeout(() => {
-            prioritizeUrgentActions();
-        }, 100);
-    }
-    
-    window.switchTab = switchTab;
-    
-    // =========================================================
-    // INITIALIZE DEPOSIT/WITHDRAW BUTTONS
-    // =========================================================
-    function initWalletButtons() {
-        const depositBtn = document.getElementById('depositBtn');
-        const withdrawBtn = document.getElementById('withdrawBtn');
-        
-        if (depositBtn) {
-            depositBtn.onclick = () => {
-                switchTab('invest');
-            };
-        }
-        
-        if (withdrawBtn) {
-            withdrawBtn.onclick = () => {
-                showToast('Withdraw feature coming soon', 'info');
-            };
-        }
-    }
-    
-    // =========================================================
-    // INITIALIZATION
-    // =========================================================
-    function init() {
-        initSession();
-        history.pushState(null, null, location.href);
-        window.onpopstate = () => history.pushState(null, null, location.href);
-        
-        // Session Resume Tracking
-        const lastSession = sessionStorage.getItem('lastSessionTime');
-        const now = Date.now();
-        if (lastSession) {
-            const timeSinceLastSession = now - parseInt(lastSession);
-            if (timeSinceLastSession < 3600000) { // Within 1 hour
-                state.sessionResumeCount = (state.sessionResumeCount || 0) + 1;
-            }
-        }
-        sessionStorage.setItem('lastSessionTime', now.toString());
-        state.lastSessionTime = now;
-        saveState();
-        
-        // Check for critical action in progress
-        checkCriticalAction();
-        
-        // Navigation protection
-        window.addEventListener('beforeunload', (e) => {
-            if (criticalActionInProgress) {
-                e.preventDefault();
-                e.returnValue = 'A critical action is in progress. Are you sure you want to leave?';
-                return e.returnValue;
-            }
-        });
-        
-        // Stale Claim Check
-        if (state.isClaiming) {
-            const elapsed = now() - state.claimStartTime;
-            if (elapsed > (CLAIM_PROCESS_TIME * 1000 + 5000)) {
-                state.isClaiming = false;
-                state.claimStartTime = 0;
-                setCriticalActionInProgress(false);
-                saveState();
-            } else {
-                resumeClaim();
-            }
-        }
-        
-        // Update contracts on load
-        updateContracts();
-        
-        // Process burn penalties on load
-        const hadBurn = processBurnPenalties();
-        if (hadBurn) {
-            // Show empathetic reminder after 5 minutes
-            setTimeout(() => {
-                showEmpatheticReminder();
-            }, 300000);
-        }
-        
-        // Reset morning scroll flag at start of new day
-        const lastReset = sessionStorage.getItem('morningScrollReset');
-        const today = new Date().toDateString();
-        if (lastReset !== today) {
-            sessionStorage.removeItem('morningScrollDone');
-            sessionStorage.setItem('morningScrollReset', today);
-        }
-        
-        // Initialize shield task RNG
-        initShieldTaskRNG();
-        checkAndApplyShieldStatus();
-        
-        // Check if shield saved user (for relief modal)
-        const shieldSaved = sessionStorage.getItem('shieldSaved');
-        if (shieldSaved === 'true') {
-            showShieldProtectionModal();
-            sessionStorage.removeItem('shieldSaved');
-        }
-        
-        setInterval(() => {
-            checkAndApplyShieldStatus();
-        }, 3000);
-        
-        initWalletConnection();
-        
-        // Check milestones
-        checkMilestones();
-        
-        // Apply dynamic prioritization
-        prioritizeUrgentActions();
-        
-        // Apply fast-track animations for consistent users
-        const animationSpeed = getAnimationSpeed();
-        if (animationSpeed < 1.0) {
-            document.documentElement.style.setProperty('--base-duration', '1s');
-            document.body.classList.add('fast-track');
-        }
-        
-        updateUI();
-        startCountdown();
-        renderHistory();
-        startMarketSimulation();
-        startActivityFeed();
-        
-        // Periodic prioritization updates
-        setInterval(() => {
-            prioritizeUrgentActions();
-            updateEveningUrgencyBadges();
-        }, 5000);
-        
-        // Silent Onboarding: Show subtle hints for new users
-        if (state.sessionResumeCount === 0 && coreData.activeContracts.length === 0) {
-            setTimeout(() => {
-                const hint = document.createElement('div');
-                hint.className = 'onboarding-hint';
-                hint.innerHTML = `
-                    <div class="hint-content">
-                        <i class="fa-solid fa-lightbulb"></i>
-                        <span>Start by activating your first contract in the Invest tab</span>
-                    </div>
-                `;
-                document.body.appendChild(hint);
-                setTimeout(() => {
-                    hint.classList.add('fade-out');
-                    setTimeout(() => hint.remove(), 500);
-                }, 5000);
-            }, 3000);
-        }
-        
-        // Event Listeners
-        if (el.menuBtn) {
-            el.menuBtn.onclick = () => {
-                if (el.sidebar) el.sidebar.classList.toggle("open");
-                if (el.overlay) el.overlay.classList.toggle("active");
-            };
-        }
-        
-        if (el.overlay) {
-            el.overlay.onclick = () => {
-                if (el.sidebar) el.sidebar.classList.remove("open");
-                if (el.overlay) el.overlay.classList.remove("active");
-            };
-        }
-        
-        if (el.langFabBtn) {
-            el.langFabBtn.onclick = (e) => {
-                e.stopPropagation();
-                if (el.langFabMenu) el.langFabMenu.classList.toggle('hidden');
-            };
-        }
-        
-        if (el.langFabOptions) {
-            el.langFabOptions.forEach(btn => btn.onclick = (e) => {
-                e.stopPropagation();
-                state.lang = btn.dataset.lang;
-                saveState();
-                updateUI();
-                renderHistory();
-                if (el.langFabMenu) el.langFabMenu.classList.add('hidden');
-            });
-        }
-        
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.lang-fab')) {
-                if (el.langFabMenu) el.langFabMenu.classList.add('hidden');
-            }
-        });
-        
-        if (el.menuItems && el.menuItems.length > 0) {
-            el.menuItems.forEach(item => {
-                if (item.href && item.href.includes('admin.html')) {
-                    return;
-                }
-                item.onclick = (e) => {
-                    e.preventDefault();
-                    if (el.sidebar) el.sidebar.classList.remove("open");
-                    if (el.overlay) el.overlay.classList.remove("active");
-                };
-            });
-        }
-        
-        if (el.startBtn) {
-            el.startBtn.onclick = () => {
-                state.introShown = true;
-                saveState();
-                
-                // Hide welcome screen completely
-                if (el.welcomeScreen) {
-                    el.welcomeScreen.classList.add("hidden");
-                    el.welcomeScreen.style.display = 'none';
-                }
-                
-                // Show header and bottom nav
-                const appHeader = document.querySelector('.app-header');
-                if (appHeader) {
-                    appHeader.style.display = 'flex';
-                }
-                const bottomNav = document.querySelector('.bottom-nav');
-                if (bottomNav) {
-                    bottomNav.style.display = 'flex';
-                }
-                
-                // Switch to home tab
-                if (typeof window.switchTab === 'function') {
-                    window.switchTab('home');
-                } else {
-                    const homeSection = document.getElementById('home-section');
-                    const investSection = document.getElementById('invest-section');
-                    const walletSection = document.getElementById('wallet-section');
-                    const teamSection = document.getElementById('team-section');
-                    
-                    if (homeSection) homeSection.style.display = 'block';
-                    if (investSection) investSection.style.display = 'none';
-                    if (walletSection) walletSection.style.display = 'none';
-                    if (teamSection) teamSection.style.display = 'none';
-                    
-                    const navItems = document.querySelectorAll('.nav-item');
-                    navItems.forEach(item => {
-                        item.classList.remove('active');
-                        if (item.dataset.tab === 'home') {
-                            item.classList.add('active');
-                        }
-                    });
-                }
-            };
-        }
-        
-        // Initialize welcome screen visibility
-        if (!state.introShown) {
-            if (el.welcomeScreen) {
-                el.welcomeScreen.classList.remove("hidden");
-                el.welcomeScreen.style.display = 'flex';
-            }
-            const appHeader = document.querySelector('.app-header');
-            if (appHeader) {
-                appHeader.style.display = 'none';
-            }
-            const bottomNav = document.querySelector('.bottom-nav');
-            if (bottomNav) {
-                bottomNav.style.display = 'none';
-            }
-        } else {
-            if (el.welcomeScreen) {
-                el.welcomeScreen.classList.add("hidden");
-                el.welcomeScreen.style.display = 'none';
-            }
-            const appHeader = document.querySelector('.app-header');
-            if (appHeader) {
-                appHeader.style.display = 'flex';
-            }
-            const bottomNav = document.querySelector('.bottom-nav');
-            if (bottomNav) {
-                bottomNav.style.display = 'flex';
-            }
-        }
-        
-        if (el.copyBtn) {
-            el.copyBtn.onclick = () => {
-                if (el.refLink) {
-                    navigator.clipboard.writeText(el.refLink.value);
-                    showToast(T().toastLink, 'success');
-                }
-            };
-        }
-        
-        if (el.copyReferralBtn) {
-            el.copyReferralBtn.onclick = () => {
-                if (el.referralLink) {
-                    navigator.clipboard.writeText(el.referralLink.value);
-                    showToast(T().toastRefLink, 'success');
-                }
-            };
-        }
-        
-        if (el.termsBtn) {
-            el.termsBtn.onclick = (e) => {
-                e.stopPropagation();
-                if (el.termsModal) el.termsModal.classList.remove('hidden');
-            };
-        }
-        
-        if (el.closeTermsBtn) {
-            el.closeTermsBtn.onclick = () => {
-                if (el.termsModal) el.termsModal.classList.add('hidden');
-            };
-        }
-        
-        if (el.acceptTermsBtn) {
-            el.acceptTermsBtn.onclick = () => {
-                if (el.termsModal) el.termsModal.classList.add('hidden');
-            };
-        }
-        
-        if (el.termsModal) {
-            el.termsModal.onclick = (e) => {
-                if (e.target === el.termsModal) {
-                    el.termsModal.classList.add('hidden');
-                }
-            };
-        }
-        
-        if (el.closeReferralBtn) {
-            el.closeReferralBtn.onclick = () => {
-                if (el.referralModal) el.referralModal.classList.add('hidden');
-            };
-        }
-        
-        if (el.referralModal) {
-            el.referralModal.onclick = (e) => {
-                if (e.target === el.referralModal) {
-                    el.referralModal.classList.add('hidden');
-                }
-            };
-        }
-        
-        if (el.constitutionBtn) {
-            el.constitutionBtn.onclick = (e) => {
-                e.stopPropagation();
-                if (el.constitutionModal) el.constitutionModal.classList.remove('hidden');
-            };
-        }
-        
-        if (el.closeConstitutionBtn) {
-            el.closeConstitutionBtn.onclick = () => {
-                if (el.constitutionModal) el.constitutionModal.classList.add('hidden');
-            };
-        }
-        
-        if (el.acceptConstitutionBtn) {
-            el.acceptConstitutionBtn.onclick = () => {
-                if (el.constitutionModal) el.constitutionModal.classList.add('hidden');
-            };
-        }
-        
-        if (el.constitutionModal) {
-            el.constitutionModal.onclick = (e) => {
-                if (e.target === el.constitutionModal) {
-                    el.constitutionModal.classList.add('hidden');
-                }
-            };
-        }
-        
-        if (el.walletConnectBtn) {
-            el.walletConnectBtn.onclick = () => {
-                connectWallet();
-            };
-        }
-        
-        if (el.closeUploadModal) {
-            el.closeUploadModal.onclick = () => {
-                if (el.uploadModal) el.uploadModal.classList.add('hidden');
-                // Reset upload steps
-                const steps = ['step1', 'step2', 'step3', 'step4'];
-                steps.forEach(stepId => {
-                    const step = document.getElementById(stepId);
-                    if (step) {
-                        step.classList.remove('active', 'completed');
-                    }
-                });
-                const progressFill = document.getElementById('uploadProgressFill');
-                if (progressFill) progressFill.style.width = '0%';
-            };
-        }
-        
-        if (el.uploadModal) {
-            el.uploadModal.onclick = (e) => {
-                if (e.target === el.uploadModal) {
-                    el.uploadModal.classList.add('hidden');
-                    // Reset upload steps
-                    const steps = ['step1', 'step2', 'step3', 'step4'];
-                    steps.forEach(stepId => {
-                        const step = document.getElementById(stepId);
-                        if (step) {
-                            step.classList.remove('active', 'completed');
-                        }
-                    });
-                    const progressFill = document.getElementById('uploadProgressFill');
-                    if (progressFill) progressFill.style.width = '0%';
-                }
-            };
-        }
-        
-        // Check Sunday every minute and update chart if needed
-        setInterval(() => {
-            if (el.sundayLockOverlay) {
-                const wasSunday = !el.sundayLockOverlay.classList.contains('hidden');
-                const isSundayNow = isSunday();
-                if (wasSunday !== isSundayNow) {
-                    updateUI();
-                }
-            }
-        }, 60000);
-    }
-    
-    // =========================================================
-    // START APPLICATION
-    // =========================================================
-    init();
-    
-    // Initialize deposit modal and referral section
-    initDepositModal();
-    initReferralSection();
-    updateBalanceFromStorage();
-    initWalletButtons();
-    
-    // Set default active tab based on intro state
-    const welcomeScreen = document.getElementById('welcomeScreen');
-    if (welcomeScreen && welcomeScreen.classList.contains('hidden')) {
-        const bottomNav = document.querySelector('.bottom-nav');
-        if (bottomNav) {
-            bottomNav.style.display = 'flex';
-        }
-        switchTab('home');
+    animateSpectrum();
+}
+
+function updateMarketPrice() {
+    if (isSunday()) {
+        // Sunday: Flat line
+        document.getElementById('marketCard').classList.add('sunday-locked');
+        document.getElementById('marketStatus').innerHTML = `
+            <span class="status-dot"></span>
+            <span>${t('marketHoliday')}</span>
+        `;
+        return;
     } else {
-        const bottomNav = document.querySelector('.bottom-nav');
-        if (bottomNav) {
-            bottomNav.style.display = 'none';
-        }
+        document.getElementById('marketCard').classList.remove('sunday-locked');
+        document.getElementById('marketStatus').innerHTML = `
+            <span class="status-dot"></span>
+            <span>${t('active')}</span>
+        `;
     }
     
-    // =========================================================
-    // ADMIN SYNC (LIVE)
-    // =========================================================
-    function syncAdminData() {
-        // Sync deposits from localStorage.pending_deposits
-        const pendingDeposits = JSON.parse(localStorage.getItem('pending_deposits') || '[]');
-        const userId = `User_${state.refCode || '123'}`;
+    // Random price movement
+    const change = (Math.random() - 0.5) * 0.0002;
+    marketPrice += change;
+    
+    // Keep price realistic
+    if (marketPrice < 0.9990) marketPrice = 0.9990;
+    if (marketPrice > 1.0010) marketPrice = 1.0010;
+    
+    // Determine trend
+    marketTrend = change > 0 ? 1 : -1;
+    
+    // Update UI
+    const priceEl = document.getElementById('marketPrice');
+    const changeEl = document.getElementById('marketChange');
+    
+    priceEl.textContent = '$' + marketPrice.toFixed(4);
+    
+    const changePercent = ((marketPrice - 1) * 100).toFixed(2);
+    changeEl.textContent = (changePercent >= 0 ? '+' : '') + changePercent + '%';
+    changeEl.className = 'market-change ' + (changePercent >= 0 ? 'positive' : 'negative');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SHIELD INDICATOR
+// ═══════════════════════════════════════════════════════════
+
+function updateShieldIndicator() {
+    const state = loadState();
+    const indicator = document.getElementById('shieldIndicator');
+    const countEl = document.getElementById('shieldCount');
+    
+    if (state.user.protectionCards > 0) {
+        indicator.style.display = 'flex';
+        countEl.textContent = state.user.protectionCards;
+    } else {
+        indicator.style.display = 'none';
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LANGUAGE SYSTEM
+// ═══════════════════════════════════════════════════════════
+
+function t(key, arText, frText) {
+    if (arText && currentLang === 'ar') return arText;
+    if (frText && currentLang === 'fr') return frText;
+    return TRANSLATIONS[currentLang][key] || key;
+}
+
+function setLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('nexcareer_language', lang);
+    
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    
+    updateAllTranslations();
+    closeLangModal();
+}
+
+function updateAllTranslations() {
+    document.querySelectorAll('[data-lang-key]').forEach(el => {
+        const key = el.getAttribute('data-lang-key');
+        el.textContent = t(key);
+    });
+}
+
+function openLangModal() {
+    document.getElementById('langModal').classList.add('active');
+}
+
+function closeLangModal() {
+    document.getElementById('langModal').classList.remove('active');
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI UPDATES
+// ═══════════════════════════════════════════════════════════
+
+function updateUI() {
+    const state = loadState();
+    
+    // Update balance
+    document.getElementById('balance').textContent = '$' + state.user.balance.toFixed(2);
+    document.getElementById('totalEarned').textContent = '$' + state.user.totalEarned.toFixed(2);
+    document.getElementById('walletBalance').textContent = '$' + state.user.balance.toFixed(2);
+    
+    // Update active contracts count
+    const activeCount = state.user.activeContracts.filter(c => c.status === 'active').length;
+    document.getElementById('activeContracts').textContent = activeCount;
+    
+    // Calculate daily profit
+    let dailyProfit = 0;
+    state.user.activeContracts.forEach(contract => {
+        if (contract.status === 'active') {
+            dailyProfit += calculateDailyProfit(contract.tier, contract.contractDay);
+        }
+    });
+    document.getElementById('dailyProfit').textContent = '$' + dailyProfit.toFixed(2);
+    
+    // Update claim button
+    updateClaimButton();
+    
+    // Update referral code
+    document.getElementById('referralCode').textContent = state.user.referralCode;
+    
+    // Update team stats
+    document.getElementById('teamCount').textContent = state.user.teamCount;
+    document.getElementById('teamEarnings').textContent = '$' + state.user.teamEarnings.toFixed(2);
+    
+    // Update shield
+    updateShieldIndicator();
+    
+    // Update tier buttons based on platform day
+    updateTierAvailability();
+}
+
+function updateClaimButton() {
+    const claimBtn = document.getElementById('claimButton');
+    const claimText = claimBtn.querySelector('.claim-text');
+    
+    claimBtn.classList.remove('ready', 'cooldown', 'sunday-locked');
+    
+    if (isSunday()) {
+        claimBtn.classList.add('sunday-locked');
+        claimText.textContent = t('sundayLock');
+        claimBtn.disabled = true;
+    } else if (canClaim()) {
+        claimBtn.classList.add('ready');
+        claimText.textContent = t('claimReward');
+        claimBtn.disabled = false;
+    } else {
+        claimBtn.classList.add('cooldown');
+        const state = loadState();
+        const nextClaimTime = (state.user.lastClaimTime || 0) + (24 * 60 * 60 * 1000);
+        const remaining = nextClaimTime - Date.now();
         
-        // Check for approved deposits and activate contracts
-        const approvedDeposits = pendingDeposits.filter(d => 
-            d.user === userId && d.status === 'approved' && !d.contractActivated
-        );
+        if (remaining > 0) {
+            const hours = Math.floor(remaining / (60 * 60 * 1000));
+            const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+            claimText.textContent = `${hours}h ${minutes}m`;
+        }
+        claimBtn.disabled = true;
+    }
+}
+
+function updateTierAvailability() {
+    const state = loadState();
+    const platformDay = state.platform.currentDay;
+    
+    // Month 1: Tiers 1-3
+    // Month 2: Tiers 4-5
+    // Month 3: Tier 6
+    
+    for (let tier = 1; tier <= 6; tier++) {
+        const btn = document.querySelector(`.btn-activate[data-tier="${tier}"]`);
+        if (!btn) continue;
         
-        approvedDeposits.forEach(deposit => {
-            const tier = deposit.amount;
-            if (INVESTMENT_TIERS.includes(tier)) {
-                // Check if contract already exists for this tier
-                const existingContract = coreData.activeContracts.find(c => c.tier === tier);
-                if (!existingContract) {
-                    // Activate contract
-                    if (activateContract(tier, tier)) {
-                        deposit.contractActivated = true;
-                        localStorage.setItem('pending_deposits', JSON.stringify(pendingDeposits));
-                        console.log(`✅ Contract activated for tier $${tier} from admin approval`);
-                        showToast(`Contract $${tier} activated!`, 'success');
-                        updateUI();
-                    }
-                } else {
-                    deposit.contractActivated = true;
-                    localStorage.setItem('pending_deposits', JSON.stringify(pendingDeposits));
-                }
-            }
+        let isUnlocked = false;
+        if (tier <= 3) isUnlocked = true; // Always available
+        if (tier <= 5 && platformDay >= 31) isUnlocked = true;
+        if (tier === 6 && platformDay >= 61) isUnlocked = true;
+        
+        const hasContract = state.user.activeContracts.some(c => c.tier === tier && c.status === 'active');
+        
+        if (hasContract) {
+            btn.textContent = t('active');
+            btn.disabled = true;
+        } else if (isUnlocked) {
+            btn.textContent = t('activate');
+            btn.disabled = false;
+        } else {
+            btn.textContent = t('locked');
+            btn.disabled = true;
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════════════════════════
+
+function switchTab(tabId) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(tabId).classList.add('active');
+    
+    // Update nav buttons
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════
+
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${type === 'success' ? '#00ff88' : type === 'error' ? '#ff4757' : '#00d4ff'};
+        color: #0a0e27;
+        padding: 15px 25px;
+        border-radius: 12px;
+        font-weight: 600;
+        z-index: 10004;
+        animation: slideDown 0.3s ease;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideUp 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════════════════════════
+
+function initEventListeners() {
+    // Language button
+    document.getElementById('langFloatBtn').addEventListener('click', openLangModal);
+    
+    // Language options
+    document.querySelectorAll('.lang-option').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const lang = e.currentTarget.getAttribute('data-lang');
+            setLanguage(lang);
         });
-        
-        // Sync shields from localStorage.gd_shield_approvals
-        const shieldApprovals = JSON.parse(localStorage.getItem('gd_shield_approvals') || '[]');
-        const userApproval = shieldApprovals.find(approval => approval.userId === userId);
-        
-        if (userApproval && !state.hasShield) {
-            localStorage.setItem('hasShield', 'true');
-            state.hasShield = true;
-            saveState();
-            checkAndApplyShieldStatus();
+    });
+    
+    // Claim button
+    document.getElementById('claimButton').addEventListener('click', performClaim);
+    
+    // Tier activation buttons
+    document.querySelectorAll('.btn-activate').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const tier = parseInt(e.currentTarget.getAttribute('data-tier'));
+            showContractModal(tier);
+        });
+    });
+    
+    // Contract modal
+    document.getElementById('agreeCheckbox').addEventListener('change', updateContractAcceptButton);
+    document.getElementById('btnContractAccept').addEventListener('click', acceptContract);
+    document.getElementById('btnContractDecline').addEventListener('click', closeContractModal);
+    
+    // Lucky task button
+    document.getElementById('luckyTaskBtn').addEventListener('click', openTaskModal);
+    
+    // Task modal
+    document.getElementById('taskUploadZone').addEventListener('click', () => {
+        document.getElementById('taskFileInput').click();
+    });
+    
+    document.getElementById('taskFileInput').addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleTaskFileUpload(e.target.files[0]);
         }
-        
-        // Admin approval logic handled in admin.html - balance sync happens via updateBalanceFromStorage
-    }
+    });
     
-    // Check for balance updates periodically
-    setInterval(() => {
-        updateBalanceFromStorage();
-        syncAdminData();
-    }, 2000);
+    document.getElementById('btnTaskSubmit').addEventListener('click', submitTask);
+    document.getElementById('btnTaskCancel').addEventListener('click', closeTaskModal);
     
-    // Periodic contract updates
+    // Bottom navigation
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const tabId = e.currentTarget.getAttribute('data-tab');
+            switchTab(tabId);
+        });
+    });
+    
+    // Copy referral code
+    document.getElementById('btnCopyRef').addEventListener('click', () => {
+        const state = loadState();
+        navigator.clipboard.writeText(state.user.referralCode);
+        showToast(t('codeCopied', 'تم نسخ الكود!', 'Code copié!'), 'success');
+    });
+}
+
+// ═══════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════
+
+function init() {
+    // Load language
+    const savedLang = localStorage.getItem('nexcareer_language') || 'ar';
+    currentLang = savedLang;
+    setLanguage(savedLang);
+    
+    // Initialize state
+    appState = loadState();
+    
+    // Initialize event listeners
+    initEventListeners();
+    
+    // Process contracts
+    processContracts();
+    
+    // Update UI
+    updateUI();
+    
+    // Initialize market spectrum
+    initMarketSpectrum();
+    
+    // Start market price updates (every 3 seconds)
+    marketInterval = setInterval(updateMarketPrice, 3000);
+    
+    // Update claim button countdown every second
+    setInterval(updateClaimButton, 1000);
+    
+    // Process contracts every minute
     setInterval(() => {
-        updateContracts();
+        processContracts();
         updateUI();
-    }, 60000); // Every minute
-})();
+    }, 60000);
+    
+    console.log('[NexCareer] System initialized - V7.1');
+}
+
+// Start app
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
