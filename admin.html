@@ -3,383 +3,1273 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة الإدارة | Global Deposit</title>
+    <title>NexCareer - لوحة تحكم الأدمن</title>
     <style>
-        /* ستايل خاص ومستقل لهذه الصفحة لتجنب الشاشة السوداء */
-        body {
-            background-color: #050505;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        * {
             margin: 0;
             padding: 0;
-            display: flex;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-secondary: #151b3d;
+            --bg-card: #1a2142;
+            --accent-primary: #00d4ff;
+            --accent-secondary: #7b61ff;
+            --success: #00ff88;
+            --danger: #ff4757;
+            --warning: #ffa502;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
         }
 
-        /* القائمة الجانبية */
-        .sidebar {
-            width: 250px;
-            background: linear-gradient(180deg, #111, #000);
-            border-left: 1px solid #333;
+        /* Header */
+        .admin-header {
+            background: var(--bg-secondary);
             padding: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-        .logo {
-            color: #FFD700;
-            font-size: 22px;
-            font-weight: bold;
-            margin-bottom: 40px;
-            text-align: center;
-            border-bottom: 1px solid #333;
-            padding-bottom: 20px;
-        }
-        .menu-item {
-            padding: 15px;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: 0.3s;
-            color: #ccc;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .menu-item:hover, .menu-item.active {
-            background: rgba(255, 215, 0, 0.1);
-            color: #FFD700;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        /* المحتوى الرئيسي */
-        .main-content {
-            flex: 1;
-            padding: 30px;
-        }
-        .header {
-            font-size: 24px;
-            margin-bottom: 30px;
-            color: #FFD700;
-            border-bottom: 1px solid #222;
-            padding-bottom: 15px;
-        }
-
-        /* كروت الإحصائيات */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-        .stat-card {
-            background: #111;
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid #333;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-        .stat-num {
+        .admin-header h1 {
             font-size: 28px;
-            font-weight: bold;
-            color: #fff;
-            margin-bottom: 5px;
+            background: linear-gradient(135deg, #00d4ff 0%, #7b61ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
         }
-        .stat-label {
-            color: #888;
+
+        .admin-header p {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-top: 5px;
             font-size: 14px;
         }
 
-        /* شبكة المهام */
-        .tasks-grid {
+        /* Container */
+        .admin-container {
+            padding: 30px 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Stats Overview */
+        .stats-overview {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            background: var(--bg-card);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            border: 2px solid var(--border);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .stat-box.success {
+            border-color: var(--success);
+        }
+
+        .stat-box.warning {
+            border-color: var(--warning);
+        }
+
+        .stat-box.danger {
+            border-color: var(--danger);
+        }
+
+        .stat-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Tabs */
+        .admin-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 15px 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--accent-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Section Title */
+        .section-title {
+            font-size: 22px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        /* Cards */
+        .admin-card {
+            background: var(--bg-card);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        /* Table */
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .admin-table th,
+        .admin-table td {
+            padding: 15px;
+            text-align: right;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .admin-table th {
+            background: var(--bg-secondary);
+            color: var(--accent-primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .admin-table tr:hover {
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-badge.pending {
+            background: rgba(255, 165, 2, 0.2);
+            color: var(--warning);
+        }
+
+        .status-badge.approved {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--success);
+        }
+
+        .status-badge.rejected {
+            background: rgba(255, 71, 87, 0.2);
+            color: var(--danger);
+        }
+
+        /* Action Buttons */
+        .action-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-approve {
+            background: var(--success);
+            color: var(--bg-primary);
+        }
+
+        .btn-approve:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-reject {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-reject:hover {
+            box-shadow: 0 0 20px rgba(255, 71, 87, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-view {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        .btn-view:hover {
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        /* Form */
+        .admin-form {
+            display: grid;
             gap: 20px;
         }
-        .task-card {
-            background: #151515;
-            border: 1px solid #333;
-            border-radius: 12px;
-            padding: 15px;
-            position: relative;
-            transition: 0.3s;
-        }
-        .task-card:hover {
-            border-color: #FFD700;
-        }
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .avatar {
-            width: 40px;
-            height: 40px;
-            background: #333;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #FFD700;
-        }
-        .screenshot-placeholder {
-            width: 100%;
-            height: 120px;
-            background: #222;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #555;
-            margin-bottom: 15px;
-            border: 1px dashed #444;
-            font-size: 12px;
-        }
-        .btn-group {
-            display: flex;
-            gap: 10px;
-        }
-        .btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.2s;
-        }
-        .btn-approve {
-            background: linear-gradient(45deg, #28a745, #218838);
-            color: white;
-        }
-        .btn-approve:hover { opacity: 0.9; }
-        
-        .btn-reject {
-            background: #dc3545;
-            color: white;
-        }
-        .btn-reject:hover { background: #c82333; }
 
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .form-input,
+        .form-select {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            color: var(--text-primary);
+            padding: 12px 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .form-submit {
+            background: linear-gradient(135deg, #00d4ff 0%, #7b61ff 100%);
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .form-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--accent-primary);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .modal-title {
+            font-size: 24px;
+            color: var(--accent-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 28px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--danger);
+            transform: rotate(90deg);
+        }
+
+        .screenshot-preview {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 2px solid var(--border);
+        }
+
+        /* Platform Controls */
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .control-card {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid var(--border);
+        }
+
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .control-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: var(--bg-primary);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid var(--border);
+        }
+
+        .toggle-switch.active {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active::after {
+            right: calc(100% - 23px);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .alert.success {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert.warning {
+            background: rgba(255, 165, 2, 0.1);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .alert.danger {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .admin-table {
+                font-size: 14px;
+            }
+
+            .admin-table th,
+            .admin-table td {
+                padding: 10px;
+            }
+
+            .action-btns {
+                flex-direction: column;
+            }
+
+            .stats-overview {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
-        <a href="index.html" style="text-decoration: none; color: inherit; margin-bottom: 20px; display: block;">
-            <div class="menu-item" style="background: rgba(255, 215, 0, 0.15); border: 1px solid rgba(255, 215, 0, 0.4); color: #FFD700; font-weight: bold;">
-                ⬅️ عودة للتطبيق / Back to App
-            </div>
-        </a>
-        <div class="logo">👑 Admin Panel</div>
-        <div class="menu-item active">📊 لوحة التحكم</div>
-        <div class="menu-item">👥 المستخدمين</div>
-        <div class="menu-item">📝 المهام (3)</div>
-        <div class="menu-item">⚙️ الإعدادات</div>
-    </div>
+    <!-- Header -->
+    <header class="admin-header">
+        <h1>🛡️ لوحة تحكم NexCareer</h1>
+        <p>إدارة كاملة للنظام | المسؤول: Admin</p>
+    </header>
 
-    <div class="main-content">
-        <div class="header">مراقبة النظام المباشرة</div>
+    <!-- Main Container -->
+    <div class="admin-container">
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-num">1,245</div>
+        <!-- Stats Overview -->
+        <div class="stats-overview">
+            <div class="stat-box success">
+                <div class="stat-icon">👥</div>
+                <div class="stat-value" id="totalUsers">0</div>
                 <div class="stat-label">إجمالي المستخدمين</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-num">$54,200</div>
-                <div class="stat-label">إجمالي الإيداعات (BNB)</div>
+            <div class="stat-box warning">
+                <div class="stat-icon">📋</div>
+                <div class="stat-value" id="pendingDeposits">0</div>
+                <div class="stat-label">إيداعات معلقة</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-num" style="color: #FFD700;">3</div>
-                <div class="stat-label">مهام بانتظار الموافقة</div>
+            <div class="stat-box">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-value" id="pendingTasks">0</div>
+                <div class="stat-label">مهام معلقة</div>
+            </div>
+            <div class="stat-box danger">
+                <div class="stat-icon">💰</div>
+                <div class="stat-value" id="totalVolume">$0</div>
+                <div class="stat-label">حجم المعاملات</div>
             </div>
         </div>
 
-        <h3 style="color: #ccc; margin-bottom: 20px; border-right: 3px solid #FFD700; padding-right: 10px; margin-top: 30px;">💰 Pending Deposits Management</h3>
-        <div id="pendingDepositsContainer" style="display: grid; gap: 15px; margin-bottom: 30px;">
-            <!-- Deposits will be loaded here -->
+        <!-- Tabs -->
+        <div class="admin-tabs">
+            <button class="tab-btn active" data-tab="deposits">طلبات الإيداع</button>
+            <button class="tab-btn" data-tab="tasks">المهام المحظوظة</button>
+            <button class="tab-btn" data-tab="users">المستخدمين</button>
+            <button class="tab-btn" data-tab="contracts">العقود النشطة</button>
+            <button class="tab-btn" data-tab="platform">إعدادات المنصة</button>
         </div>
 
-        <h3 style="color: #ccc; margin-bottom: 20px; border-right: 3px solid #FFD700; padding-right: 10px; margin-top: 30px;">طلبات تفعيل الدرع (Screenshots)</h3>
-
-        <div class="tasks-grid">
+        <!-- Tab 1: Deposits -->
+        <div class="tab-content active" id="deposits">
+            <h2 class="section-title">📥 إدارة طلبات الإيداع</h2>
             
-            <div class="task-card" id="task1">
-                <div class="user-info">
-                    <div class="avatar">👤</div>
-                    <div>
-                        <div style="font-weight: bold; color: #fff;">User_9928</div>
-                        <div style="font-size: 12px; color: #777;">منذ 10 دقائق</div>
+            <div class="admin-card">
+                <h3>إضافة إيداع جديد</h3>
+                <form class="admin-form" id="addDepositForm">
+                    <div class="form-group">
+                        <label class="form-label">اسم المستخدم / البريد</label>
+                        <input type="text" class="form-input" id="depositUser" placeholder="أدخل اسم المستخدم" required>
                     </div>
-                </div>
-                <div class="screenshot-placeholder">
-                    [صورة إيصال التحويل وهمية]
-                </div>
-                <div class="btn-group">
-                    <button class="btn btn-approve" onclick="approveTask('task1')">✅ قبول وتفعيل</button>
-                    <button class="btn btn-reject" onclick="rejectTask('task1')">❌ رفض</button>
-                </div>
+                    <div class="form-group">
+                        <label class="form-label">المبلغ ($)</label>
+                        <input type="number" class="form-input" id="depositAmount" placeholder="100" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">TX Hash (اختياري)</label>
+                        <input type="text" class="form-input" id="depositTxHash" placeholder="0x...">
+                    </div>
+                    <button type="submit" class="form-submit">➕ إضافة إيداع</button>
+                </form>
             </div>
 
-            <div class="task-card" id="task2">
-                <div class="user-info">
-                    <div class="avatar">👤</div>
+            <div class="admin-card">
+                <h3>طلبات الإيداع المعلقة</h3>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>المستخدم</th>
+                            <th>المبلغ</th>
+                            <th>TX Hash</th>
+                            <th>الحالة</th>
+                            <th>الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="depositsTableBody">
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                <div class="empty-state-icon">📭</div>
+                                <div>لا توجد طلبات إيداع</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 2: Tasks -->
+        <div class="tab-content" id="tasks">
+            <h2 class="section-title">⭐ إدارة المهام المحظوظة</h2>
+            
+            <div class="admin-card">
+                <h3>المهام المعلقة للموافقة</h3>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>المستخدم</th>
+                            <th>الصورة</th>
+                            <th>الحالة</th>
+                            <th>الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasksTableBody">
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                <div class="empty-state-icon">⭐</div>
+                                <div>لا توجد مهام معلقة</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 3: Users -->
+        <div class="tab-content" id="users">
+            <h2 class="section-title">👥 إدارة المستخدمين</h2>
+            
+            <div class="admin-card">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>المستخدم</th>
+                            <th>الرصيد</th>
+                            <th>العقود النشطة</th>
+                            <th>إجمالي الأرباح</th>
+                            <th>آخر استلام</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                <div class="empty-state-icon">👤</div>
+                                <div>لا يوجد مستخدمين</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 4: Contracts -->
+        <div class="tab-content" id="contracts">
+            <h2 class="section-title">📋 العقود النشطة</h2>
+            
+            <div class="admin-card">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>المستخدم</th>
+                            <th>المستوى</th>
+                            <th>رأس المال</th>
+                            <th>اليوم</th>
+                            <th>الأرباح غير المستلمة</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="contractsTableBody">
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                <div class="empty-state-icon">📄</div>
+                                <div>لا توجد عقود نشطة</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 5: Platform Settings -->
+        <div class="tab-content" id="platform">
+            <h2 class="section-title">⚙️ إعدادات المنصة</h2>
+            
+            <div class="admin-card">
+                <div class="alert warning">
+                    <span>⚠️</span>
                     <div>
-                        <div style="font-weight: bold; color: #fff;">User_5511</div>
-                        <div style="font-size: 12px; color: #777;">منذ 25 دقيقة</div>
+                        <strong>تنبيه:</strong> التغييرات هنا تؤثر على جميع المستخدمين
                     </div>
                 </div>
-                <div class="screenshot-placeholder">
-                    [صورة إيصال التحويل وهمية]
-                </div>
-                <div class="btn-group">
-                    <button class="btn btn-approve" onclick="approveTask('task2')">✅ قبول وتفعيل</button>
-                    <button class="btn btn-reject" onclick="rejectTask('task2')">❌ رفض</button>
-                </div>
-            </div>
 
+                <div class="control-grid">
+                    <div class="control-card">
+                        <div class="control-header">
+                            <span class="control-title">اليوم الحالي للمنصة</span>
+                        </div>
+                        <input type="number" class="form-input" id="platformDay" value="1" min="1" max="120">
+                        <small style="color: var(--text-secondary); display: block; margin-top: 10px;">
+                            من 1 إلى 120 يوم
+                        </small>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-header">
+                            <span class="control-title">فتح التسجيل</span>
+                            <div class="toggle-switch active" id="toggleRegistration"></div>
+                        </div>
+                        <small style="color: var(--text-secondary);">
+                            السماح بتسجيل مستخدمين جدد
+                        </small>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-header">
+                            <span class="control-title">Tier 4 مفتوح</span>
+                            <div class="toggle-switch" id="toggleTier4"></div>
+                        </div>
+                        <small style="color: var(--text-secondary);">
+                            يتم فتحه من اليوم 31
+                        </small>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-header">
+                            <span class="control-title">Tier 5 مفتوح</span>
+                            <div class="toggle-switch" id="toggleTier5"></div>
+                        </div>
+                        <small style="color: var(--text-secondary);">
+                            يتم فتحه من اليوم 31
+                        </small>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-header">
+                            <span class="control-title">Tier 6 مفتوح</span>
+                            <div class="toggle-switch" id="toggleTier6"></div>
+                        </div>
+                        <small style="color: var(--text-secondary);">
+                            يتم فتحه من اليوم 61
+                        </small>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-header">
+                            <span class="control-title">نظام الإحالات</span>
+                            <div class="toggle-switch" id="toggleReferrals"></div>
+                        </div>
+                        <small style="color: var(--text-secondary);">
+                            يتم تفعيله من اليوم 31
+                        </small>
+                    </div>
+                </div>
+
+                <button class="form-submit" style="margin-top: 30px;" onclick="savePlatformSettings()">
+                    💾 حفظ جميع الإعدادات
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal for Image Preview -->
+    <div class="modal" id="imageModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">معاينة الصورة</h3>
+                <button class="modal-close" onclick="closeImageModal()">×</button>
+            </div>
+            <img src="" alt="Screenshot" class="screenshot-preview" id="modalImage">
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-approve" style="flex: 1;" onclick="approveTaskFromModal()">
+                    ✓ الموافقة ومنح الدرع
+                </button>
+                <button class="btn btn-reject" style="flex: 1;" onclick="rejectTaskFromModal()">
+                    ✗ رفض
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
-        // Admin Access Safety Guard (Front-end protection)
-        (function() {
-            // For demo purposes, set admin flag on first visit
-            // In production, this should be server-side validated
-            if (!localStorage.getItem('isAdmin')) {
-                // Allow access for demo, but you can restrict here
-                // localStorage.setItem('isAdmin', 'true');
+        // ═══════════════════════════════════════════════════════════
+        // ADMIN PANEL LOGIC
+        // ═══════════════════════════════════════════════════════════
+
+        const ADMIN_STORAGE_KEY = 'nexcareer_admin_v71';
+        const USER_STORAGE_KEY = 'nexcareer_data_v71';
+
+        let adminData = {
+            deposits: [],
+            shieldTasks: [],
+            platformSettings: {
+                currentDay: 1,
+                registrationOpen: true,
+                tier4Unlocked: false,
+                tier5Unlocked: false,
+                tier6Unlocked: false,
+                referralsActive: false
             }
+        };
+
+        let currentTaskId = null;
+
+        // ═══════════════════════════════════════════════════════════
+        // INITIALIZATION
+        // ═══════════════════════════════════════════════════════════
+
+        function init() {
+            loadAdminData();
+            updateStats();
+            renderDeposits();
+            renderTasks();
+            renderUsers();
+            renderContracts();
+            loadPlatformSettings();
             
-            // Uncomment below to enable strict access control:
-            // const isAdmin = localStorage.getItem('isAdmin') === 'true';
-            // if (!isAdmin) {
-            //     alert('Access Restricted');
-            //     window.location.href = 'index.html';
-            //     return;
-            // }
-        })();
+            // Tab switching
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', switchTab);
+            });
 
-        function approveTask(cardId) {
-            // 1. تفعيل الدرع في ذاكرة المتصفح
-            // هذا هو السطر السحري الذي سيقرأه الموقع الرئيسي
-            localStorage.setItem('hasShield', 'true');
+            // Form submission
+            document.getElementById('addDepositForm').addEventListener('submit', addDeposit);
 
-            // 2. إخفاء الكرت بحركة لطيفة
-            const card = document.getElementById(cardId);
-            card.style.transition = "all 0.5s ease";
-            card.style.opacity = '0';
-            card.style.transform = 'scale(0.9)';
-            
-            setTimeout(() => {
-                card.remove();
-                alert("✅ تم تفعيل الدرع بنجاح!\n\nالآن ارجع للصفحة الرئيسية (index.html) وستجد أيقونة الدرع ذهبية.");
-            }, 500);
-        }
-
-        function rejectTask(cardId) {
-            if(confirm("هل أنت متأكد من رفض المهمة؟")) {
-                const card = document.getElementById(cardId);
-                card.style.opacity = '0';
-                setTimeout(() => card.remove(), 300);
-            }
-        }
-
-        // PENDING DEPOSITS MANAGEMENT
-        function loadPendingDeposits() {
-            const container = document.getElementById('pendingDepositsContainer');
-            if (!container) return;
-
-            const pendingDeposits = JSON.parse(localStorage.getItem('pending_deposits') || '[]');
-            
-            if (pendingDeposits.length === 0) {
-                container.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No pending deposits</div>';
-                return;
-            }
-
-            container.innerHTML = '';
-            pendingDeposits.forEach((deposit, index) => {
-                const card = document.createElement('div');
-                card.className = 'task-card';
-                card.id = `deposit-${index}`;
-                card.innerHTML = `
-                    <div class="user-info">
-                        <div class="avatar">${deposit.user}</div>
-                        <div>
-                            <div style="color: #fff; font-weight: bold;">${deposit.user}</div>
-                            <div style="color: #888; font-size: 12px;">${new Date(deposit.date).toLocaleString()}</div>
-                        </div>
-                    </div>
-                    <div style="margin: 15px 0;">
-                        <div style="color: #ccc; margin-bottom: 8px;"><strong>Tier:</strong> ${deposit.tier}</div>
-                        <div style="color: #FFD700; font-size: 20px; font-weight: bold; margin-bottom: 8px;">$${deposit.amount}</div>
-                        <div style="color: #888; font-size: 12px; font-family: monospace; word-break: break-all;"><strong>TXID:</strong> ${deposit.txid}</div>
-                    </div>
-                    <div class="btn-group">
-                        <button class="btn btn-approve" onclick="approveDeposit(${index})">Approve</button>
-                        <button class="btn btn-reject" onclick="rejectDeposit(${index})">Reject</button>
-                    </div>
-                `;
-                container.appendChild(card);
+            // Toggle switches
+            document.querySelectorAll('.toggle-switch').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                });
             });
         }
 
-        function approveDeposit(index) {
-            const pendingDeposits = JSON.parse(localStorage.getItem('pending_deposits') || '[]');
-            if (index >= pendingDeposits.length) return;
+        function loadAdminData() {
+            const stored = localStorage.getItem(ADMIN_STORAGE_KEY);
+            if (stored) {
+                adminData = JSON.parse(stored);
+            }
+        }
 
-            const deposit = pendingDeposits[index];
+        function saveAdminData() {
+            localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(adminData));
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // TAB SWITCHING
+        // ═══════════════════════════════════════════════════════════
+
+        function switchTab(e) {
+            const tabName = e.target.getAttribute('data-tab');
             
-            // Add amount to total balance
-            const currentBalance = parseFloat(localStorage.getItem('totalBalance') || '0');
-            const newBalance = currentBalance + deposit.amount;
-            localStorage.setItem('totalBalance', newBalance.toString());
-
-            // Remove from pending deposits
-            pendingDeposits.splice(index, 1);
-            localStorage.setItem('pending_deposits', JSON.stringify(pendingDeposits));
-
-            // Remove card visually
-            const card = document.getElementById(`deposit-${index}`);
-            if (card) {
-                card.style.transition = '0.3s';
-                card.style.opacity = '0';
-                card.style.transform = 'scale(0.9)';
-                setTimeout(() => {
-                    card.remove();
-                    loadPendingDeposits(); // Reload to update indices
-                }, 300);
-            }
-
-            // Show success toast
-            alert(`✅ Deposit Approved — Balance Updated to $${newBalance.toFixed(2)}`);
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            e.target.classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
         }
 
-        function rejectDeposit(index) {
-            const pendingDeposits = JSON.parse(localStorage.getItem('pending_deposits') || '[]');
-            if (index >= pendingDeposits.length) return;
+        // ═══════════════════════════════════════════════════════════
+        // STATS
+        // ═══════════════════════════════════════════════════════════
 
-            // Remove from pending deposits
-            pendingDeposits.splice(index, 1);
-            localStorage.setItem('pending_deposits', JSON.stringify(pendingDeposits));
+        function updateStats() {
+            const userState = getUserState();
+            
+            document.getElementById('totalUsers').textContent = userState ? 1 : 0;
+            document.getElementById('pendingDeposits').textContent = 
+                adminData.deposits.filter(d => d.status === 'pending').length;
+            document.getElementById('pendingTasks').textContent = 
+                adminData.shieldTasks.filter(t => t.status === 'pending').length;
+            
+            let totalVolume = 0;
+            if (userState) {
+                totalVolume = userState.user.balance + userState.user.totalEarned;
+            }
+            document.getElementById('totalVolume').textContent = '$' + totalVolume.toFixed(2);
+        }
 
-            // Remove card visually
-            const card = document.getElementById(`deposit-${index}`);
-            if (card) {
-                card.style.transition = '0.3s';
-                card.style.opacity = '0';
-                setTimeout(() => {
-                    card.remove();
-                    loadPendingDeposits(); // Reload to update indices
-                }, 300);
+        function getUserState() {
+            const stored = localStorage.getItem(USER_STORAGE_KEY);
+            return stored ? JSON.parse(stored) : null;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // DEPOSITS
+        // ═══════════════════════════════════════════════════════════
+
+        function addDeposit(e) {
+            e.preventDefault();
+            
+            const deposit = {
+                id: 'dep_' + Date.now(),
+                user: document.getElementById('depositUser').value,
+                amount: parseFloat(document.getElementById('depositAmount').value),
+                txHash: document.getElementById('depositTxHash').value || 'N/A',
+                timestamp: Date.now(),
+                status: 'pending'
+            };
+            
+            adminData.deposits.push(deposit);
+            saveAdminData();
+            renderDeposits();
+            updateStats();
+            
+            // Reset form
+            e.target.reset();
+            
+            showAlert('تم إضافة الإيداع بنجاح', 'success');
+        }
+
+        function renderDeposits() {
+            const tbody = document.getElementById('depositsTableBody');
+            const deposits = adminData.deposits.filter(d => d.status === 'pending');
+            
+            if (deposits.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <div>لا توجد طلبات إيداع</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = deposits.map(dep => `
+                <tr>
+                    <td>${new Date(dep.timestamp).toLocaleString('ar')}</td>
+                    <td>${dep.user}</td>
+                    <td>$${dep.amount.toFixed(2)}</td>
+                    <td style="font-size: 12px;">${dep.txHash.substring(0, 10)}...</td>
+                    <td><span class="status-badge ${dep.status}">${getStatusText(dep.status)}</span></td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn btn-approve" onclick="approveDeposit('${dep.id}')">
+                                ✓ موافقة
+                            </button>
+                            <button class="btn btn-reject" onclick="rejectDeposit('${dep.id}')">
+                                ✗ رفض
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function approveDeposit(id) {
+            const deposit = adminData.deposits.find(d => d.id === id);
+            if (!deposit) return;
+            
+            deposit.status = 'approved';
+            deposit.processedAt = Date.now();
+            
+            // Add to user balance
+            const userState = getUserState();
+            if (userState) {
+                userState.user.balance += deposit.amount;
+                localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userState));
+            }
+            
+            saveAdminData();
+            renderDeposits();
+            updateStats();
+            
+            showAlert(`تمت الموافقة على الإيداع: $${deposit.amount}`, 'success');
+        }
+
+        function rejectDeposit(id) {
+            const deposit = adminData.deposits.find(d => d.id === id);
+            if (!deposit) return;
+            
+            deposit.status = 'rejected';
+            deposit.processedAt = Date.now();
+            
+            saveAdminData();
+            renderDeposits();
+            updateStats();
+            
+            showAlert('تم رفض الإيداع', 'danger');
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // TASKS
+        // ═══════════════════════════════════════════════════════════
+
+        function renderTasks() {
+            const tbody = document.getElementById('tasksTableBody');
+            const tasks = adminData.shieldTasks.filter(t => t.status === 'pending');
+            
+            if (tasks.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <div class="empty-state-icon">⭐</div>
+                            <div>لا توجد مهام معلقة</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = tasks.map(task => `
+                <tr>
+                    <td>${new Date(task.timestamp).toLocaleString('ar')}</td>
+                    <td>${task.user || 'مستخدم'}</td>
+                    <td>
+                        <button class="btn btn-view" onclick="viewTaskImage('${task.id}')">
+                            👁️ عرض
+                        </button>
+                    </td>
+                    <td><span class="status-badge ${task.status}">${getStatusText(task.status)}</span></td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn btn-approve" onclick="approveTask('${task.id}')">
+                                ✓ موافقة
+                            </button>
+                            <button class="btn btn-reject" onclick="rejectTask('${task.id}')">
+                                ✗ رفض
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function viewTaskImage(id) {
+            currentTaskId = id;
+            const task = adminData.shieldTasks.find(t => t.id === id);
+            if (!task || !task.imageData) return;
+            
+            document.getElementById('modalImage').src = task.imageData;
+            document.getElementById('imageModal').classList.add('active');
+        }
+
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.remove('active');
+            currentTaskId = null;
+        }
+
+        function approveTaskFromModal() {
+            if (currentTaskId) {
+                approveTask(currentTaskId);
+                closeImageModal();
             }
         }
 
-        // Load pending deposits on page load
-        loadPendingDeposits();
-        
-        // Refresh every 3 seconds
-        setInterval(loadPendingDeposits, 3000);
+        function rejectTaskFromModal() {
+            if (currentTaskId) {
+                rejectTask(currentTaskId);
+                closeImageModal();
+            }
+        }
+
+        function approveTask(id) {
+            const task = adminData.shieldTasks.find(t => t.id === id);
+            if (!task) return;
+            
+            task.status = 'approved';
+            task.processedAt = Date.now();
+            
+            // Grant shield to user
+            const userState = getUserState();
+            if (userState && userState.user.protectionCards === 0) {
+                userState.user.protectionCards = 1;
+                userState.user.cardIssuedAt = Date.now();
+                localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userState));
+            }
+            
+            saveAdminData();
+            renderTasks();
+            updateStats();
+            
+            showAlert('تمت الموافقة ومنح درع الحماية', 'success');
+        }
+
+        function rejectTask(id) {
+            const task = adminData.shieldTasks.find(t => t.id === id);
+            if (!task) return;
+            
+            task.status = 'rejected';
+            task.processedAt = Date.now();
+            
+            saveAdminData();
+            renderTasks();
+            updateStats();
+            
+            showAlert('تم رفض المهمة', 'danger');
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // USERS
+        // ═══════════════════════════════════════════════════════════
+
+        function renderUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            const userState = getUserState();
+            
+            if (!userState) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <div class="empty-state-icon">👤</div>
+                            <div>لا يوجد مستخدمين</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            const lastClaim = userState.user.lastClaimTime ? 
+                new Date(userState.user.lastClaimTime).toLocaleString('ar') : 'لم يستلم بعد';
+            
+            tbody.innerHTML = `
+                <tr>
+                    <td>مستخدم تجريبي</td>
+                    <td>$${userState.user.balance.toFixed(2)}</td>
+                    <td>${userState.user.activeContracts.filter(c => c.status === 'active').length}</td>
+                    <td>$${userState.user.totalEarned.toFixed(2)}</td>
+                    <td>${lastClaim}</td>
+                </tr>
+            `;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // CONTRACTS
+        // ═══════════════════════════════════════════════════════════
+
+        function renderContracts() {
+            const tbody = document.getElementById('contractsTableBody');
+            const userState = getUserState();
+            
+            if (!userState || userState.user.activeContracts.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <div class="empty-state-icon">📄</div>
+                            <div>لا توجد عقود نشطة</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = userState.user.activeContracts.map(contract => `
+                <tr>
+                    <td>مستخدم تجريبي</td>
+                    <td>Tier ${contract.tier}</td>
+                    <td>$${contract.principal}</td>
+                    <td>${contract.contractDay}/60</td>
+                    <td>$${contract.unclaimedBalance.toFixed(2)}</td>
+                    <td><span class="status-badge ${contract.status === 'active' ? 'approved' : 'pending'}">${contract.status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // PLATFORM SETTINGS
+        // ═══════════════════════════════════════════════════════════
+
+        function loadPlatformSettings() {
+            const settings = adminData.platformSettings;
+            
+            document.getElementById('platformDay').value = settings.currentDay;
+            
+            setToggle('toggleRegistration', settings.registrationOpen);
+            setToggle('toggleTier4', settings.tier4Unlocked);
+            setToggle('toggleTier5', settings.tier5Unlocked);
+            setToggle('toggleTier6', settings.tier6Unlocked);
+            setToggle('toggleReferrals', settings.referralsActive);
+        }
+
+        function setToggle(id, active) {
+            const toggle = document.getElementById(id);
+            if (active) {
+                toggle.classList.add('active');
+            } else {
+                toggle.classList.remove('active');
+            }
+        }
+
+        function savePlatformSettings() {
+            adminData.platformSettings = {
+                currentDay: parseInt(document.getElementById('platformDay').value),
+                registrationOpen: document.getElementById('toggleRegistration').classList.contains('active'),
+                tier4Unlocked: document.getElementById('toggleTier4').classList.contains('active'),
+                tier5Unlocked: document.getElementById('toggleTier5').classList.contains('active'),
+                tier6Unlocked: document.getElementById('toggleTier6').classList.contains('active'),
+                referralsActive: document.getElementById('toggleReferrals').classList.contains('active')
+            };
+            
+            // Update user state
+            const userState = getUserState();
+            if (userState) {
+                userState.platform.currentDay = adminData.platformSettings.currentDay;
+                localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userState));
+            }
+            
+            saveAdminData();
+            showAlert('تم حفظ الإعدادات بنجاح', 'success');
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // HELPERS
+        // ═══════════════════════════════════════════════════════════
+
+        function getStatusText(status) {
+            const statusMap = {
+                pending: 'معلق',
+                approved: 'موافق عليه',
+                rejected: 'مرفوض'
+            };
+            return statusMap[status] || status;
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type}`;
+            alertDiv.innerHTML = `
+                <span>${type === 'success' ? '✓' : type === 'danger' ? '✗' : 'ℹ'}</span>
+                <div>${message}</div>
+            `;
+            
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.left = '50%';
+            alertDiv.style.transform = 'translateX(-50%)';
+            alertDiv.style.zIndex = '10000';
+            alertDiv.style.minWidth = '300px';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+
+        // Initialize on load
+        init();
+
+        // Auto-refresh every 5 seconds
+        setInterval(() => {
+            updateStats();
+            renderDeposits();
+            renderTasks();
+            renderUsers();
+            renderContracts();
+        }, 5000);
     </script>
 
 </body>
