@@ -1,486 +1,441 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title data-i18n="pageTitle">NexCareer</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexCareer - منصة المسار المهني الرقمي</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
-  <div id="multiTabWarning" class="multitab-banner hidden">
-    <i class="fa-solid fa-triangle-exclamation"></i>
-    <span data-i18n="multiTab">Session active in another tab.</span>
-    <button id="useHereBtn" data-i18n="useHere">USE HERE</button>
-  </div>
-
-  <div id="saturdayPreNotification" class="saturday-pre-notification hidden">
-    <i class="fa-solid fa-clock"></i>
-    <span>⚠️ Market closes tomorrow (Sunday). Claim your rewards today!</span>
-    <button class="close-notification-btn" onclick="document.getElementById('saturdayPreNotification').classList.add('hidden')">
-      <i class="fa-solid fa-times"></i>
-    </button>
-  </div>
-
-  <div id="welcomeScreen" class="intro-overlay" style="z-index: 9999; position: fixed; inset: 0;">
-    <div class="intro-card">
-      <div class="intro-logo"><i class="fa-solid fa-earth-americas"></i></div>
-      <h2 data-i18n="appTitle">NexCareer</h2>
-      <p class="subtitle" data-i18n="appSubtitle">Secure Investment System</p>
-      <div class="features-list">
-        <div class="f-item"><i class="fa-solid fa-shield-halved"></i> <span data-i18n="secureProtocol">Secure Protocol</span></div>
-        <div class="f-item"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="activityLog">Activity Log</span></div>
-        <div class="f-item"><i class="fa-solid fa-check-circle"></i> <span data-i18n="integrityCheck">Integrity Check</span></div>
-      </div>
-      <button id="startBtn" class="gold-btn">
-          ACCESS DASHBOARD 🚀
-      </button>
-    </div>
-  </div>
-
-  <!-- ===============================
-       HEADER
-       =============================== -->
-  <header class="app-header">
-    <div class="brand-logo">
-      <div class="logo-3d-container">
-        <div class="shield-container">
-          <div class="globe-icon"><i class="fa-solid fa-earth-americas"></i></div>
-          <div class="shield-ring"><i class="fa-solid fa-shield-halved"></i></div>
-        </div>
-      </div>
-      <span class="app-name" data-i18n="appTitle">NexCareer</span>
-      <button class="info-icon-btn" id="termsBtn"><i class="fa-solid fa-circle-info"></i></button>
-      <button class="insurance-shield-btn" id="insuranceBtn"><i class="fa-solid fa-shield"></i></button>
-      <button class="info-icon-btn" id="constitutionBtn"><i class="fa-solid fa-scroll"></i></button>
-      
-      <button class="wallet-connect-btn" id="connect-wallet">
-        <i class="fa-solid fa-wallet"></i> <span id="walletConnectText">Connect</span>
-      </button>
+    
+    <!-- Language Floating Button -->
+    <div class="language-float-btn" id="langFloatBtn">
+        <div class="lang-icon">🌐</div>
     </div>
     
-    <button id="menuBtn" class="menu-btn"><i class="fa-solid fa-bars"></i></button>
-  </header>
-
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="user-profile">
-        <div class="avatar"><i class="fa-solid fa-user-tie"></i></div>
-        <div class="u-text">
-          <h3 id="usernameDisplay">NexCareer Associate</h3>
-          <span class="status"><span data-i18n="connected">Connected</span></span>
+    <div class="language-selector-modal" id="langModal">
+        <div class="lang-modal-content">
+            <h3 data-lang-key="selectLanguage">اختر اللغة</h3>
+            <button class="lang-option" data-lang="ar">العربية 🇸🇦</button>
+            <button class="lang-option" data-lang="en">English 🇬🇧</button>
+            <button class="lang-option" data-lang="fr">Français 🇫🇷</button>
         </div>
-      </div>
     </div>
-    <nav class="sidebar-menu">
-      <a href="#" class="menu-item active" onclick="switchTab('home')"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
-      <a href="#" class="menu-item" onclick="switchTab('invest')"><i class="fa-solid fa-gem"></i> Invest</a>
-      <a href="#" class="menu-item" onclick="switchTab('wallet')"><i class="fa-solid fa-wallet"></i> Wallet</a>
-      <a href="#" class="menu-item" onclick="switchTab('team')"><i class="fa-solid fa-users"></i> Team</a>
-      <a href="admin.html" class="menu-item admin-panel-link">
-        <i class="fa-solid fa-user-shield"></i> <span>Admin Panel</span>
-      </a>
-    </nav>
-  </aside>
 
-  <main class="app">
-    
-    <section id="home-section" class="tab-section" style="display: none;">
-      <div class="market-card glass-card">
-        <div class="m-header">
-          <div class="coin-pair">
-            <div class="icon-bg-bnb" id="coinIcon">
-                <i class="fa-solid fa-dollar-sign" style="font-size:20px; color:#000;"></i>
+    <!-- Shield Indicator (Floating) -->
+    <div class="shield-indicator" id="shieldIndicator" style="display: none;">
+        <div class="shield-icon">🛡️</div>
+        <div class="shield-count" id="shieldCount">0</div>
+    </div>
+
+    <!-- Lucky Task Button (30% Random) -->
+    <div class="lucky-task-btn" id="luckyTaskBtn" style="display: none;">
+        <div class="task-icon">⭐</div>
+        <div class="task-pulse"></div>
+    </div>
+
+    <!-- Lucky Task Modal -->
+    <div class="task-modal" id="taskModal">
+        <div class="task-modal-content">
+            <div class="task-header">
+                <h2 data-lang-key="luckyTask">مهمة محظوظة!</h2>
+                <div class="task-reward">🎁</div>
             </div>
-            <div class="pair-text">
-              <h3><span id="coinNameDisplay" data-i18n="bnbPair">USDT / USD</span></h3>
-              <span data-i18n="bscChain">BINANCE SMART CHAIN (BEP20)</span>
+            <p data-lang-key="taskDescription">تفاعل مع القناة ادعم المحتوى بالتعليق والمشاركة</p>
+            <div class="task-upload-zone" id="taskUploadZone">
+                <div class="upload-icon">📸</div>
+                <p data-lang-key="uploadScreenshot">ارفع لقطة شاشة التفاعل</p>
+                <input type="file" id="taskFileInput" accept="image/*" style="display: none;">
             </div>
-          </div>
-          <div class="live-price">
-            <span id="marketPrice">1.00</span>
-            <span id="bnbChange" class="change up">+0.00%</span>
-          </div>
+            <div class="task-actions">
+                <button class="btn-task-submit" id="btnTaskSubmit" disabled>
+                    <span data-lang-key="submitTask">إرسال المهمة</span>
+                </button>
+                <button class="btn-task-cancel" id="btnTaskCancel">
+                    <span data-lang-key="cancel">إلغاء</span>
+                </button>
+            </div>
         </div>
+    </div>
+
+    <!-- Contract Modal -->
+    <div class="contract-modal" id="contractModal">
+        <div class="contract-content">
+            <div class="contract-header">
+                <h2 data-lang-key="careerContract">عقد المسار المهني</h2>
+                <div class="contract-tier-badge" id="contractTierBadge">Tier 1</div>
+            </div>
+            
+            <div class="contract-body">
+                <div class="contract-section">
+                    <h3 data-lang-key="contractTerms">شروط العقد</h3>
+                    <div class="contract-details" id="contractDetails">
+                        <!-- Dynamic contract details will be inserted here -->
+                    </div>
+                </div>
+
+                <div class="contract-section">
+                    <h3 data-lang-key="workMechanism">آلية العمل</h3>
+                    <ul class="contract-points" id="contractPoints">
+                        <!-- Dynamic points will be inserted here -->
+                    </ul>
+                </div>
+
+                <div class="contract-agreement">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="agreeCheckbox">
+                        <span class="checkmark"></span>
+                        <span data-lang-key="agreeToTerms">أوافق على الشروط والأحكام</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="contract-footer">
+                <button class="btn-contract-accept" id="btnContractAccept" disabled>
+                    <span data-lang-key="acceptAndSubscribe">الموافقة والاشتراك</span>
+                </button>
+                <button class="btn-contract-decline" id="btnContractDecline">
+                    <span data-lang-key="decline">رفض</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Claim Processing Overlay (60s) -->
+    <div class="claim-overlay" id="claimOverlay">
+        <div class="claim-overlay-content">
+            <div class="claim-timer-circle">
+                <svg class="claim-progress-ring" width="200" height="200">
+                    <circle class="progress-ring-bg" cx="100" cy="100" r="90"></circle>
+                    <circle class="progress-ring-fill" cx="100" cy="100" r="90" id="progressRing"></circle>
+                </svg>
+                <div class="claim-timer-text">
+                    <div class="timer-seconds" id="claimTimerSeconds">60</div>
+                    <div class="timer-label" data-lang-key="seconds">ثانية</div>
+                </div>
+            </div>
+            <div class="claim-status-message" id="claimStatusMessage" data-lang-key="processingDeal">
+                جارٍ الحصول على صفقة...
+            </div>
+            <div class="claim-progress-bar">
+                <div class="claim-progress-fill" id="claimProgressFill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div class="app-container">
         
-        <div class="chart-filters">
-             <button class="filter-btn active">1D</button>
-             <button class="filter-btn">1W</button>
-             <button class="filter-btn">1M</button>
-        </div>
-
-        <div class="chart-area">
-          <canvas id="marketChartCanvas" width="400" height="120"></canvas>
-        </div>
-      </div>
-
-      <div class="bottom-stats">
-        <div class="stat-card glass-card">
-          <div class="stat-label" data-i18n="dailyYield">DAILY YIELD</div>
-          <div class="stat-value gold">2.20%</div>
-        </div>
-        <div class="stat-card glass-card">
-          <div class="stat-label" data-i18n="totalProfit">TOTAL PROFIT</div>
-          <div class="stat-value green" id="totalProfit">$0.00</div>
-        </div>
-      </div>
-      
-      <div class="claim-btn-container" style="margin-top: 20px;">
-          <div id="sundayLockOverlay" class="sunday-lock-overlay hidden">
-            <i class="fa-solid fa-lock"></i> <span data-i18n="sundayLock">SUNDAY LOCK 🔒</span>
-          </div>
-          <button id="claimBtn" class="hero-btn">
-            <i class="fa-solid fa-gem"></i> <span data-i18n="claim">CLAIM REWARD</span>
-          </button>
-          <div id="countdownDisplay" class="countdown-text ready"></div>
-          <div id="streakDisplay" class="streak-indicator" style="text-align: center; margin-top: 10px; font-size: 12px; color: #888;">
-            <i class="fa-solid fa-fire"></i> <span id="streakDays">0</span> Day Streak
-          </div>
-      </div>
-    </section>
-
-    <section id="invest-section" class="tab-section" style="display: none;">
-      <h2 style="color: #FFD700; margin: 20px 0; text-align: center;">Investment Tiers</h2>
-      <div class="contracts-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; padding-bottom: 80px;">
-          
-          <div class="glass-card" style="padding: 15px; text-align: center; border: 1px solid #FFD700;" onclick="selectPlan(25, 'Intern', false)">
-              <div style="font-size: 30px;">🌱</div>
-              <h3 style="color:#FFD700; margin:5px;">Intern</h3>
-              <div style="font-size: 22px; font-weight:bold;">$25</div>
-              <button class="gold-btn" style="margin-top:10px; padding:8px; font-size:12px;">Activate</button>
-          </div>
-
-          <div class="glass-card" style="padding: 15px; text-align: center; border: 1px solid #FFD700;" onclick="selectPlan(50, 'Junior', false)">
-              <div style="font-size: 30px;">🔨</div>
-              <h3 style="color:#FFD700; margin:5px;">Junior</h3>
-              <div style="font-size: 22px; font-weight:bold;">$50</div>
-              <button class="gold-btn" style="margin-top:10px; padding:8px; font-size:12px;">Activate</button>
-          </div>
-
-          <div class="glass-card" style="padding: 15px; text-align: center; border: 1px solid #FFD700;" onclick="selectPlan(100, 'Pro', false)">
-              <div style="font-size: 30px;">🚀</div>
-              <h3 style="color:#FFD700; margin:5px;">Pro</h3>
-              <div style="font-size: 22px; font-weight:bold;">$100</div>
-              <button class="gold-btn" style="margin-top:10px; padding:8px; font-size:12px;">Activate</button>
-          </div>
-
-          <div class="glass-card" style="padding: 15px; text-align: center; opacity: 0.6; border: 1px solid #555;" onclick="selectPlan(250, 'Expert', true)">
-              <div style="font-size: 30px;">🔒</div>
-              <h3 style="color:#888; margin:5px;">Expert</h3>
-              <div style="font-size: 22px;">$250</div>
-              <div style="font-size:10px; color:#888;">Opens Day 30</div>
-          </div>
-
-          <div class="glass-card" style="padding: 15px; text-align: center; opacity: 0.6; border: 1px solid #555;" onclick="selectPlan(500, 'Manager', true)">
-              <div style="font-size: 30px;">🔒</div>
-              <h3 style="color:#888; margin:5px;">Manager</h3>
-              <div style="font-size: 22px;">$500</div>
-              <div style="font-size:10px; color:#888;">Opens Day 30</div>
-          </div>
-
-          <div class="glass-card" style="padding: 15px; text-align: center; opacity: 0.6; border: 1px solid #555;" onclick="selectPlan(1000, 'Partner', true)">
-              <div style="font-size: 30px;">🔒</div>
-              <h3 style="color:#888; margin:5px;">Partner</h3>
-              <div style="font-size: 22px;">$1000</div>
-              <div style="font-size:10px; color:#888;">Opens Day 60</div>
-          </div>
-      </div>
-      <div style="text-align: center; margin-top: 20px; color: #888; font-size: 14px;">
-        <span id="activeContractsCount">0</span> Active Contract(s)
-      </div>
-    </section>
-
-    <section id="wallet-section" class="tab-section" style="display: none;">
-      <div class="balance-section glass-card">
-        <h1 class="main-balance" id="balanceDisplay">$0.00</h1>
-        <div class="wallet-box glass-card" style="margin-top: 20px;">
-            <div class="wb-header">USDT (BEP20) Balance</div>
-            <h2 id="walletPageBalance" style="color:#00ff88;">$0.00</h2>
-        </div>
-        
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button class="gold-btn" style="flex:1" onclick="switchTab('invest')">⬇ Deposit</button>
-            <button class="gold-btn" style="flex:1; background: #333; color: white; border: 1px solid #FFD700;" onclick="alert('Withdrawals open on Friday only (Standard Fee Applies)')">⬆ Withdraw</button>
-        </div>
-      </div>
-
-      <div class="history-section" style="margin-top: 30px;">
-          <h3 style="color: #FFD700; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
-              <i class="fa-solid fa-clock-rotate-left"></i> Transaction History
-          </h3>
-          <div id="historyList" class="history-list">
-            <div class="empty-state" style="text-align:center; color:#666; padding:20px;">No transactions yet.</div>
-          </div>
-      </div>
-    </section>
-
-    <section id="team-section" class="tab-section" style="display: none;">
-      
-      <div class="referral-section glass-card" style="padding: 20px; text-align: center; margin-bottom: 20px;">
-        <h3 style="color: #FFD700;">Invite & Earn</h3>
-        <p>Earn 30% commission on direct referrals.</p>
-        
-        <div style="display: flex; justify-content: space-around; margin: 20px 0;">
-            <div>
-                <h2 id="totalReferrals" style="color: #fff; margin:0;">0</h2>
-                <span style="font-size:12px; color:#888;">Members</span>
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <div class="logo-icon">💼</div>
+                <div class="logo-text">NexCareer</div>
             </div>
-            <div>
-                <h2 id="refCommission" style="color: #FFD700; margin:0;">$0.00</h2>
-                <span style="font-size:12px; color:#888;">Earnings</span>
+            <div class="header-right">
+                <div class="user-avatar" id="userAvatar">👤</div>
             </div>
-        </div>
+        </header>
 
-        <div style="margin-top: 10px;">
-            <input type="text" id="referralLink" value="https://nexcareer.io/?ref=User123" readonly style="width: 100%; padding: 10px; background: #222; border: 1px solid #444; color: #fff; margin-bottom: 10px; border-radius: 6px;">
-            <button id="copyReferralBtn" class="gold-btn" style="width: 100%;">Copy Link</button>
-        </div>
-        <p style="margin-top: 15px; font-size: 12px; color: #888;">Join <strong>NexCareer Official Community</strong> for updates and support.</p>
-      </div>
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            
+            <!-- Home Tab -->
+            <div class="tab-content active" id="homeTab">
+                
+                <!-- Balance Card -->
+                <div class="balance-card">
+                    <div class="balance-label" data-lang-key="totalBalance">الرصيد الإجمالي</div>
+                    <div class="balance-value" id="balance">$0.00</div>
+                    <div class="balance-subtext">
+                        <span data-lang-key="totalEarned">إجمالي الأرباح:</span>
+                        <span id="totalEarned">$0.00</span>
+                    </div>
+                </div>
 
-      <div class="team-full-view glass-card">
-        <h3 style="color: #fff; margin-bottom: 15px; font-size: 16px;">My Team Members</h3>
-        <div class="team-table-container">
-          <table class="team-table" style="width:100%; border-collapse: collapse;">
-            <thead>
-              <tr>
-                <th style="text-align:left; padding:10px; color:#888;">User</th>
-                <th style="text-align:right; padding:10px; color:#888;">Earned</th>
-              </tr>
-            </thead>
-            <tbody id="teamTableBody">
-              <tr style="border-bottom: 1px solid #222;">
-                  <td style="padding:15px 10px;">
-                      <div style="display:flex; align-items:center; gap:10px;">
-                          <div style="width:30px; height:30px; background:#333; border-radius:50%; display:flex; align-items:center; justify-content:center;">👤</div>
-                          <div>
-                              <div style="font-weight:bold;">User_9921</div>
-                              <div style="font-size:10px; color:#00ff88;">Active</div>
-                          </div>
-                      </div>
-                  </td>
-                  <td style="text-align:right; color:#FFD700; font-weight:bold;">+$12.50</td>
-              </tr>
-              <tr style="border-bottom: 1px solid #222;">
-                  <td style="padding:15px 10px;">
-                      <div style="display:flex; align-items:center; gap:10px;">
-                          <div style="width:30px; height:30px; background:#333; border-radius:50%; display:flex; align-items:center; justify-content:center;">👤</div>
-                          <div>
-                              <div style="font-weight:bold;">User_7743</div>
-                              <div style="font-size:10px; color:#00ff88;">Active</div>
-                          </div>
-                      </div>
-                  </td>
-                  <td style="text-align:right; color:#FFD700; font-weight:bold;">+$8.20</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+                <!-- Claim Button -->
+                <button class="claim-button ready" id="claimButton">
+                    <span class="claim-text" data-lang-key="claimReward">استلام المكافأة</span>
+                    <div class="claim-icon">💰</div>
+                </button>
 
-    </section>
+                <!-- Market Card with Spectrum -->
+                <div class="market-card" id="marketCard">
+                    <div class="market-header">
+                        <div class="market-title" data-lang-key="liveMarket">السوق الحي</div>
+                        <div class="market-status" id="marketStatus">
+                            <span class="status-dot"></span>
+                            <span data-lang-key="active">نشط</span>
+                        </div>
+                    </div>
+                    <div class="market-price" id="marketPrice">$1.0000</div>
+                    <div class="market-change" id="marketChange">+0.00%</div>
+                    
+                    <!-- Market Spectrum (Glow) -->
+                    <div class="market-spectrum" id="marketSpectrum">
+                        <canvas id="spectrumCanvas" width="300" height="60"></canvas>
+                    </div>
+                </div>
 
-  </main>
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-value" id="dailyProfit">$0.00</div>
+                        <div class="stat-label" data-lang-key="dailyProfit">الربح اليومي</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-value" id="activeContracts">0</div>
+                        <div class="stat-label" data-lang-key="activeContracts">العقود النشطة</div>
+                    </div>
+                </div>
 
-  <!-- CLAIM CINEMATIC OVERLAY -->
-  <div id="claimOverlay" class="overlay hidden">
-    <div class="claim-card-cinematic">
-      <div class="timer-container-premium">
-        <svg class="timer-svg" viewBox="0 0 180 180">
-          <circle class="timer-track" cx="90" cy="90" r="82" stroke="rgba(255, 215, 0, 0.1)" stroke-width="6" fill="none"/>
-          <circle class="timer-progress-premium" id="progressRing" cx="90" cy="90" r="82" stroke="url(#goldGradient)" stroke-width="6" fill="none" stroke-dasharray="515" stroke-dashoffset="515"/>
-          <defs>
-            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#ffd700;stop-opacity:1" />
-              <stop offset="100%" style="stop-color:#00ff88;stop-opacity:1" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <div class="timer-value-premium" id="timer">60</div>
-        <div class="timer-glow-effect"></div>
-      </div>
-      <div class="status-content-premium">
-        <div class="status-phase-premium" id="phaseText">Connecting to Binance Node...</div>
-        <div class="status-details-arabic" data-i18n="dontClose">Do not close this page</div>
-      </div>
-      <div class="graph-wrapper-premium">
-        <canvas id="liveGraphCanvas" class="live-graph-canvas"></canvas>
-      </div>
-      <div class="warning-badge-premium">
-        <div class="pulse-dot-premium"></div>
-        <span class="security-text" data-i18n="waitMsg">Verifying liquidity pool connection...</span>
-      </div>
+            </div>
+
+            <!-- Invest Tab -->
+            <div class="tab-content" id="investTab">
+                <h2 class="section-title" data-lang-key="careerPlans">خطط المسار المهني</h2>
+                
+                <div class="tiers-grid">
+                    <!-- Tier 1 -->
+                    <div class="tier-card" data-tier="1">
+                        <div class="tier-header">
+                            <div class="tier-name" data-lang-key="intern">متدرب</div>
+                            <div class="tier-badge">Tier 1</div>
+                        </div>
+                        <div class="tier-price">$25</div>
+                        <div class="tier-details">
+                            <div class="tier-detail-item">
+                                <span data-lang-key="dailyReturn">عائد يومي:</span>
+                                <span class="tier-rate">2.2% - 3.4%</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="endBonus">مكافأة نهاية الخدمة:</span>
+                                <span>$2</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="duration">المدة:</span>
+                                <span>60 يوم</span>
+                            </div>
+                        </div>
+                        <button class="btn-activate" data-tier="1">
+                            <span data-lang-key="activate">تفعيل</span>
+                        </button>
+                    </div>
+
+                    <!-- Tier 2 -->
+                    <div class="tier-card" data-tier="2">
+                        <div class="tier-header">
+                            <div class="tier-name" data-lang-key="junior">مبتدئ</div>
+                            <div class="tier-badge">Tier 2</div>
+                        </div>
+                        <div class="tier-price">$50</div>
+                        <div class="tier-details">
+                            <div class="tier-detail-item">
+                                <span data-lang-key="dailyReturn">عائد يومي:</span>
+                                <span class="tier-rate">2.3% - 3.5%</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="endBonus">مكافأة نهاية الخدمة:</span>
+                                <span>$5</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="duration">المدة:</span>
+                                <span>60 يوم</span>
+                            </div>
+                        </div>
+                        <button class="btn-activate" data-tier="2">
+                            <span data-lang-key="activate">تفعيل</span>
+                        </button>
+                    </div>
+
+                    <!-- Tier 3 -->
+                    <div class="tier-card" data-tier="3">
+                        <div class="tier-header">
+                            <div class="tier-name" data-lang-key="pro">محترف</div>
+                            <div class="tier-badge">Tier 3</div>
+                        </div>
+                        <div class="tier-price">$100</div>
+                        <div class="tier-details">
+                            <div class="tier-detail-item">
+                                <span data-lang-key="dailyReturn">عائد يومي:</span>
+                                <span class="tier-rate">2.4% - 3.6%</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="endBonus">مكافأة نهاية الخدمة:</span>
+                                <span>$12</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="duration">المدة:</span>
+                                <span>60 يوم</span>
+                            </div>
+                        </div>
+                        <button class="btn-activate" data-tier="3">
+                            <span data-lang-key="activate">تفعيل</span>
+                        </button>
+                    </div>
+
+                    <!-- Tier 4 -->
+                    <div class="tier-card" data-tier="4">
+                        <div class="tier-header">
+                            <div class="tier-name" data-lang-key="expert">خبير</div>
+                            <div class="tier-badge">Tier 4</div>
+                        </div>
+                        <div class="tier-price">$250</div>
+                        <div class="tier-details">
+                            <div class="tier-detail-item">
+                                <span data-lang-key="dailyReturn">عائد يومي:</span>
+                                <span class="tier-rate">2.5% - 3.7%</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="endBonus">مكافأة نهاية الخدمة:</span>
+                                <span>$30</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="duration">المدة:</span>
+                                <span>60 يوم</span>
+                            </div>
+                        </div>
+                        <button class="btn-activate" data-tier="4" disabled>
+                            <span data-lang-key="locked">مقفل</span>
+                        </button>
+                    </div>
+
+                    <!-- Tier 5 -->
+                    <div class="tier-card" data-tier="5">
+                        <div class="tier-header">
+                            <div class="tier-name" data-lang-key="manager">مدير</div>
+                            <div class="tier-badge">Tier 5</div>
+                        </div>
+                        <div class="tier-price">$500</div>
+                        <div class="tier-details">
+                            <div class="tier-detail-item">
+                                <span data-lang-key="dailyReturn">عائد يومي:</span>
+                                <span class="tier-rate">2.6% - 3.8%</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="endBonus">مكافأة نهاية الخدمة:</span>
+                                <span>$70</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="duration">المدة:</span>
+                                <span>60 يوم</span>
+                            </div>
+                        </div>
+                        <button class="btn-activate" data-tier="5" disabled>
+                            <span data-lang-key="locked">مقفل</span>
+                        </button>
+                    </div>
+
+                    <!-- Tier 6 -->
+                    <div class="tier-card" data-tier="6">
+                        <div class="tier-header">
+                            <div class="tier-name" data-lang-key="partner">شريك</div>
+                            <div class="tier-badge">Tier 6</div>
+                        </div>
+                        <div class="tier-price">$1,000</div>
+                        <div class="tier-details">
+                            <div class="tier-detail-item">
+                                <span data-lang-key="dailyReturn">عائد يومي:</span>
+                                <span class="tier-rate">2.7% - 3.9%</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="endBonus">مكافأة نهاية الخدمة:</span>
+                                <span>$150</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="duration">المدة:</span>
+                                <span>60 يوم</span>
+                            </div>
+                        </div>
+                        <button class="btn-activate" data-tier="6" disabled>
+                            <span data-lang-key="locked">مقفل</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wallet Tab -->
+            <div class="tab-content" id="walletTab">
+                <h2 class="section-title" data-lang-key="wallet">المحفظة</h2>
+                
+                <div class="wallet-card">
+                    <div class="wallet-balance">
+                        <div class="wallet-label" data-lang-key="availableBalance">الرصيد المتاح</div>
+                        <div class="wallet-value" id="walletBalance">$0.00</div>
+                    </div>
+                    <button class="btn-withdraw" id="btnWithdraw">
+                        <span data-lang-key="withdraw">سحب</span>
+                    </button>
+                </div>
+
+                <div class="wallet-info">
+                    <div class="info-item">
+                        <span data-lang-key="network">الشبكة:</span>
+                        <span class="network-badge">USDT - BEP20</span>
+                    </div>
+                    <div class="info-item">
+                        <span data-lang-key="minWithdraw">الحد الأدنى:</span>
+                        <span>$5.00</span>
+                    </div>
+                    <div class="info-item">
+                        <span data-lang-key="processingTime">وقت المعالجة:</span>
+                        <span>24-72 ساعة</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Tab -->
+            <div class="tab-content" id="teamTab">
+                <h2 class="section-title" data-lang-key="team">الفريق</h2>
+                
+                <div class="referral-card">
+                    <div class="referral-label" data-lang-key="yourCode">كود الإحالة الخاص بك</div>
+                    <div class="referral-code-box">
+                        <div class="referral-code" id="referralCode">NEXCAR123</div>
+                        <button class="btn-copy" id="btnCopyRef">
+                            <span>📋</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="team-stats">
+                    <div class="team-stat-card">
+                        <div class="team-stat-value" id="teamCount">0</div>
+                        <div class="team-stat-label" data-lang-key="teamMembers">أعضاء الفريق</div>
+                    </div>
+                    <div class="team-stat-card">
+                        <div class="team-stat-value" id="teamEarnings">$0.00</div>
+                        <div class="team-stat-label" data-lang-key="teamEarnings">أرباح الفريق</div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-tab="homeTab">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label" data-lang-key="home">الرئيسية</div>
+            </button>
+            <button class="nav-btn" data-tab="investTab">
+                <div class="nav-icon">💼</div>
+                <div class="nav-label" data-lang-key="invest">استثمار</div>
+            </button>
+            <button class="nav-btn" data-tab="walletTab">
+                <div class="nav-icon">💳</div>
+                <div class="nav-label" data-lang-key="wallet">محفظة</div>
+            </button>
+            <button class="nav-btn" data-tab="teamTab">
+                <div class="nav-icon">👥</div>
+                <div class="nav-label" data-lang-key="team">فريق</div>
+            </button>
+        </nav>
+
     </div>
-  </div>
 
-  <!-- DEPOSIT MODAL -->
-  <div id="depositModal" class="modal-overlay hidden">
-    <div class="modal-content glass-card">
-      <div class="modal-header">
-        <h2 id="depositModalTitle">Activate Plan</h2>
-        <button class="modal-close-btn" id="closeDepositBtn"><i class="fa-solid fa-times"></i></button>
-      </div>
-      <div class="modal-body">
-          <p>Send <strong>USDT (BEP20)</strong> to:</p>
-          <div style="background: #222; padding: 10px; word-break: break-all; font-family: monospace; border: 1px solid #444;" id="depositWalletAddress">0x55d398326f99059fF775485246999027B3197955</div>
-          <button id="copyWalletBtn" style="margin-top: 5px; background: none; border: none; color: #FFD700; cursor: pointer;">Copy Address</button>
-          
-          <div style="margin-top: 20px;">
-              <label>Amount ($):</label>
-              <div id="depositAmount" style="font-size: 20px; font-weight: bold; color: #FFD700;">$0</div>
-          </div>
-
-          <div style="margin-top: 20px;">
-              <label>Transaction Hash (TXID):</label>
-              <input type="text" id="depositTxid" placeholder="Paste TXID here..." style="width: 100%; padding: 10px; margin-top: 5px; background: #333; border: 1px solid #555; color: #fff;">
-          </div>
-          
-          <button id="confirmDepositBtn" class="gold-btn" style="width: 100%; margin-top: 20px;">Confirm Payment</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- CONSTITUTION MODAL -->
-  <div id="constitutionModal" class="modal-overlay hidden">
-    <div class="modal-content glass-card">
-      <div class="modal-header">
-        <h2 data-i18n="smartContractRules">NexCareer Constitution</h2>
-        <button class="modal-close-btn" id="closeConstitutionBtn"><i class="fa-solid fa-times"></i></button>
-      </div>
-      <div class="modal-body constitution-body">
-        <div class="constitution-section">
-          <div class="const-icon"><i class="fa-solid fa-coins"></i></div>
-          <div class="const-text">
-            <h4>Article 1: Currency & Tiers</h4>
-            <p><strong>USDT (BEP20) Only</strong></p>
-            <p>Tiers: $25, $50, $100, $250, $500, $1000 USDT</p>
-            <p><strong>العملة والطبقات:</strong> USDT (BEP20) فقط. الطبقات: 25، 50، 100، 250، 500، 1000 USDT</p>
-          </div>
-        </div>
-        <div class="constitution-section">
-          <div class="const-icon"><i class="fa-solid fa-calendar-days"></i></div>
-          <div class="const-text">
-            <h4>Article 2: Contract Duration</h4>
-            <p><strong>60 days locked</strong></p>
-            <p>No early withdrawal allowed</p>
-            <p><strong>مدة العقد:</strong> 60 يوماً مقفلة. لا يُسمح بالسحب المبكر</p>
-          </div>
-        </div>
-        <div class="constitution-section">
-          <div class="const-icon"><i class="fa-solid fa-clock"></i></div>
-          <div class="const-text">
-            <h4>Article 3: Market Hours</h4>
-            <p><strong>Closed on Sundays</strong></p>
-            <p>Price frozen, graph flat, claims disabled</p>
-            <p><strong>ساعات السوق:</strong> مغلق أيام الأحد. السعر مجمد، الرسم البياني مسطح، المطالبات معطلة</p>
-          </div>
-        </div>
-        <div class="constitution-section">
-          <div class="const-icon"><i class="fa-solid fa-money-bill-transfer"></i></div>
-          <div class="const-text">
-            <h4>Article 4: Withdrawal Fees</h4>
-            <p><strong>$5-$15:</strong> $1 + 5%</p>
-            <p><strong>Above $15:</strong> 8%</p>
-            <p><strong>Friday Penalty:</strong> +5% extra</p>
-            <p><strong>رسوم السحب:</strong> 5-15 دولار: 1 دولار + 5%. فوق 15 دولار: 8%. عقوبة الجمعة: +5% إضافية</p>
-          </div>
-        </div>
-        <div class="constitution-section">
-          <div class="const-icon"><i class="fa-solid fa-shield-halved"></i></div>
-          <div class="const-text">
-            <h4>Article 5: Insurance Shield</h4>
-            <p><strong>Max 1 per user</strong></p>
-            <p>Obtained via screenshot task approval</p>
-            <p><strong>درع التأمين:</strong> حد أقصى 1 لكل مستخدم. يتم الحصول عليه عبر موافقة مهمة لقطة الشاشة</p>
-          </div>
-        </div>
-        <div class="constitution-section">
-          <div class="const-icon"><i class="fa-solid fa-users"></i></div>
-          <div class="const-text">
-            <h4>Article 6: Referral Commission</h4>
-            <p><strong>30% on daily yield</strong></p>
-            <p>Tracked and paid automatically</p>
-            <p><strong>عمولة الإحالة:</strong> 30% على العائد اليومي. يتم تتبعها ودفعها تلقائياً</p>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="gold-btn" id="acceptConstitutionBtn" data-i18n="understood">I Understand</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- UPLOAD TASK MODAL -->
-  <div id="uploadModal" class="modal-overlay hidden">
-      <div class="modal-content glass-card upload-modal">
-          <div class="upload-progress-header">
-              <h3>Task Upload Progress</h3>
-              <button class="modal-close-btn" id="closeUploadModal"><i class="fa-solid fa-times"></i></button>
-          </div>
-          <div class="upload-progress-body">
-              <div class="progress-bar-container">
-                  <div class="progress-bar-fill" id="uploadProgressFill" style="width: 0%;"></div>
-              </div>
-              <div class="upload-steps">
-                  <div class="upload-step" id="step1">
-                      <i class="fa-solid fa-camera"></i>
-                      <span id="uploadStatusText">Connecting to Camera...</span>
-                  </div>
-                  <div class="upload-step" id="step2">
-                      <i class="fa-solid fa-search"></i>
-                      <span>Scanning Receipt...</span>
-                  </div>
-                  <div class="upload-step" id="step3">
-                      <i class="fa-solid fa-cloud-arrow-up"></i>
-                      <span>Uploading...</span>
-                  </div>
-                  <div class="upload-step" id="step4">
-                      <i class="fa-solid fa-check-circle"></i>
-                      <span>✅ Sent to Admin for Review</span>
-                  </div>
-              </div>
-          </div>
-      </div>
-  </div>
-
-  <div id="shieldTaskContainer" style="position: fixed; bottom: 80px; right: 20px; z-index: 990; display: none;">
-      <button id="uploadTaskBtn" class="gold-btn" style="border-radius: 50px; padding: 10px 20px; box-shadow: 0 0 15px rgba(0,0,0,0.5);" onclick="simulateUpload(this)">
-          <span id="uploadTaskText">📸 Upload Task</span>
-      </button>
-  </div>
-
-  <div id="toastContainer" class="toast-container"></div>
-
-  <!-- Floating Language FAB -->
-  <div id="langFab" class="lang-fab">
-    <button class="lang-fab-btn" id="langFabBtn">
-      <i class="fa-solid fa-language"></i>
-    </button>
-    <div class="lang-fab-menu hidden" id="langFabMenu">
-      <button class="lang-fab-option" data-lang="en">🇬🇧 EN</button>
-      <button class="lang-fab-option" data-lang="ar">🇸🇦 AR</button>
-      <button class="lang-fab-option" data-lang="fr">🇫🇷 FR</button>
-    </div>
-  </div>
-
-  <nav class="bottom-nav">
-    <button class="nav-item active" data-tab="home" onclick="switchTab('home')">
-      <i class="fa-solid fa-house"></i> <span>Home</span>
-    </button>
-    <button class="nav-item" data-tab="invest" onclick="switchTab('invest')">
-      <i class="fa-solid fa-gem"></i> <span>Invest</span>
-    </button>
-    <button class="nav-item" data-tab="wallet" onclick="switchTab('wallet')">
-      <i class="fa-solid fa-wallet"></i> <span>Wallet</span>
-    </button>
-    <button class="nav-item" data-tab="team" onclick="switchTab('team')">
-      <i class="fa-solid fa-users"></i> <span>Team</span>
-    </button>
-  </nav>
-
-  <script src="js/app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
