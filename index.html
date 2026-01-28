@@ -4,1264 +4,435 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NexCareer - منصة المسار المهني الرقمي</title>
-    
-    <!-- ═══════════════════════════════════════════════════════════
-         EMBEDDED CSS - NO EXTERNAL FILE NEEDED
-         ═══════════════════════════════════════════════════════════ -->
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg-primary: #0a0e27;
-            --bg-secondary: #151b3d;
-            --bg-card: #1a2142;
-            --accent-primary: #00d4ff;
-            --accent-secondary: #7b61ff;
-            --success: #00ff88;
-            --danger: #ff4757;
-            --warning: #ffa502;
-            --text-primary: #ffffff;
-            --text-secondary: #a0aec0;
-            --border: rgba(255, 255, 255, 0.1);
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
-
-        html[dir="rtl"] {
-            direction: rtl;
-        }
-
-        html[dir="ltr"] {
-            direction: ltr;
-        }
-
-        /* Language Button */
-        .language-float-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #00d4ff 0%, #7b61ff 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 9999;
-            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.4);
-            transition: transform 0.3s ease;
-            animation: floatPulse 3s ease-in-out infinite;
-        }
-
-        html[dir="rtl"] .language-float-btn {
-            right: auto;
-            left: 20px;
-        }
-
-        .language-float-btn:hover {
-            transform: scale(1.1);
-        }
-
-        .lang-icon {
-            font-size: 24px;
-        }
-
-        @keyframes floatPulse {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-5px); }
-        }
-
-        .language-selector-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.9);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            backdrop-filter: blur(10px);
-        }
-
-        .language-selector-modal.active {
-            display: flex;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .lang-modal-content {
-            background: var(--bg-card);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--border);
-            min-width: 300px;
-        }
-
-        .lang-modal-content h3 {
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 20px;
-        }
-
-        .lang-option {
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            background: var(--bg-secondary);
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            color: var(--text-primary);
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .lang-option:hover {
-            background: linear-gradient(135deg, #00d4ff 0%, #7b61ff 100%);
-            border-color: var(--accent-primary);
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
-        }
-
-        /* Shield Indicator */
-        .shield-indicator {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 212, 255, 0.2) 100%);
-            border: 2px solid var(--success);
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            z-index: 9998;
-            box-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
-            animation: shieldFloat 3s ease-in-out infinite;
-        }
-
-        html[dir="rtl"] .shield-indicator {
-            right: auto;
-            left: 20px;
-        }
-
-        @keyframes shieldFloat {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-8px) rotate(5deg); }
-        }
-
-        .shield-icon {
-            font-size: 28px;
-            filter: drop-shadow(0 2px 8px rgba(0, 255, 136, 0.6));
-        }
-
-        .shield-count {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--success);
-            margin-top: -5px;
-        }
-
-        /* Lucky Task Button */
-        .lucky-task-btn {
-            position: fixed;
-            bottom: 100px;
-            right: 20px;
-            width: 70px;
-            height: 70px;
-            background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 9997;
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
-            animation: taskBounce 2s ease-in-out infinite;
-        }
-
-        html[dir="rtl"] .lucky-task-btn {
-            right: auto;
-            left: 20px;
-        }
-
-        @keyframes taskBounce {
-            0%, 100% { transform: scale(1) rotate(0deg); }
-            25% { transform: scale(1.1) rotate(-10deg); }
-            50% { transform: scale(1) rotate(0deg); }
-            75% { transform: scale(1.1) rotate(10deg); }
-        }
-
-        .task-icon {
-            font-size: 36px;
-            animation: starSpin 4s linear infinite;
-        }
-
-        @keyframes starSpin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .task-pulse {
-            position: absolute;
-            inset: -10px;
-            border: 3px solid rgba(255, 215, 0, 0.5);
-            border-radius: 50%;
-            animation: pulsate 2s ease-out infinite;
-        }
-
-        @keyframes pulsate {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(1.5); opacity: 0; }
-        }
-
-        /* Modals */
-        .task-modal,
-        .contract-modal,
-        .claim-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(10, 14, 39, 0.95);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 10001;
-            backdrop-filter: blur(15px);
-        }
-
-        .task-modal.active,
-        .contract-modal.active,
-        .claim-overlay.active {
-            display: flex;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .task-modal-content,
-        .contract-content {
-            background: var(--bg-card);
-            padding: 30px;
-            border-radius: 20px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            border: 2px solid var(--accent-primary);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .contract-content {
-            max-width: 600px;
-        }
-
-        .task-header,
-        .contract-header {
-            text-align: center;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, #00d4ff 0%, #7b61ff 100%);
-            padding: 20px;
-            margin: -30px -30px 20px -30px;
-            border-radius: 20px 20px 0 0;
-        }
-
-        .task-header h2,
-        .contract-header h2 {
-            font-size: 24px;
-            margin-bottom: 0;
-        }
-
-        .contract-tier-badge {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            display: inline-block;
-            margin-top: 10px;
-        }
-
-        .task-reward {
-            font-size: 48px;
-            margin: 10px 0;
-            animation: rewardBounce 1s ease-in-out infinite;
-        }
-
-        @keyframes rewardBounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .task-upload-zone {
-            background: var(--bg-secondary);
-            border: 2px dashed var(--border);
-            border-radius: 12px;
-            padding: 40px 20px;
-            text-align: center;
-            cursor: pointer;
-            margin: 20px 0;
-            transition: all 0.3s ease;
-        }
-
-        .task-upload-zone:hover {
-            border-color: var(--accent-primary);
-            background: rgba(0, 212, 255, 0.05);
-        }
-
-        .task-upload-zone.has-file {
-            border-color: var(--success);
-            background: rgba(0, 255, 136, 0.1);
-        }
-
-        .upload-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
-        }
-
-        .task-actions,
-        .contract-footer {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn-task-submit,
-        .btn-task-cancel,
-        .btn-contract-accept,
-        .btn-contract-decline {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-task-submit,
-        .btn-contract-accept {
-            background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
-            color: var(--bg-primary);
-        }
-
-        .btn-task-submit:disabled,
-        .btn-contract-accept:disabled {
-            background: var(--bg-secondary);
-            color: var(--text-secondary);
-            cursor: not-allowed;
-            opacity: 0.5;
-        }
-
-        .btn-task-submit:not(:disabled):hover,
-        .btn-contract-accept:not(:disabled):hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
-        }
-
-        .btn-task-cancel,
-        .btn-contract-decline {
-            background: transparent;
-            color: var(--text-secondary);
-            border: 2px solid var(--border);
-        }
-
-        .btn-task-cancel:hover,
-        .btn-contract-decline:hover {
-            border-color: var(--danger);
-            color: var(--danger);
-        }
-
-        /* Contract Body */
-        .contract-body {
-            padding: 20px 0;
-        }
-
-        .contract-section {
-            margin-bottom: 25px;
-        }
-
-        .contract-section h3 {
-            font-size: 18px;
-            margin-bottom: 15px;
-            color: var(--accent-primary);
-        }
-
-        .contract-details {
-            background: var(--bg-secondary);
-            padding: 20px;
-            border-radius: 12px;
-            border-right: 4px solid var(--accent-primary);
-        }
-
-        html[dir="ltr"] .contract-details {
-            border-right: none;
-            border-left: 4px solid var(--accent-primary);
-        }
-
-        .contract-detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .contract-detail-row:last-child {
-            border-bottom: none;
-        }
-
-        .contract-detail-value {
-            font-weight: 600;
-            color: var(--accent-primary);
-        }
-
-        .contract-points {
-            list-style: none;
-            padding: 0;
-        }
-
-        .contract-points li {
-            padding: 12px 0;
-            padding-right: 25px;
-            position: relative;
-            color: var(--text-secondary);
-            line-height: 1.6;
-        }
-
-        html[dir="ltr"] .contract-points li {
-            padding-right: 0;
-            padding-left: 25px;
-        }
-
-        .contract-points li::before {
-            content: '✓';
-            position: absolute;
-            right: 0;
-            color: var(--success);
-            font-weight: 700;
-        }
-
-        html[dir="ltr"] .contract-points li::before {
-            right: auto;
-            left: 0;
-        }
-
-        .contract-agreement {
-            background: rgba(0, 212, 255, 0.05);
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 20px;
-        }
-
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            user-select: none;
-            position: relative;
-            padding-right: 35px;
-        }
-
-        html[dir="ltr"] .checkbox-container {
-            padding-right: 0;
-            padding-left: 35px;
-        }
-
-        .checkbox-container input {
-            position: absolute;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-        .checkmark {
-            position: absolute;
-            right: 0;
-            height: 24px;
-            width: 24px;
-            background-color: var(--bg-secondary);
-            border: 2px solid var(--border);
-            border-radius: 6px;
-            transition: all 0.3s ease;
-        }
-
-        html[dir="ltr"] .checkmark {
-            right: auto;
-            left: 0;
-        }
-
-        .checkbox-container:hover .checkmark {
-            border-color: var(--accent-primary);
-        }
-
-        .checkbox-container input:checked ~ .checkmark {
-            background: linear-gradient(135deg, #00d4ff 0%, #7b61ff 100%);
-            border-color: var(--accent-primary);
-        }
-
-        .checkmark::after {
-            content: '';
-            position: absolute;
-            display: none;
-            left: 8px;
-            top: 4px;
-            width: 5px;
-            height: 10px;
-            border: solid white;
-            border-width: 0 2px 2px 0;
-            transform: rotate(45deg);
-        }
-
-        .checkbox-container input:checked ~ .checkmark::after {
-            display: block;
-        }
-
-        /* Claim Overlay */
-        .claim-overlay-content {
-            text-align: center;
-        }
-
-        .claim-timer-circle {
-            position: relative;
-            width: 200px;
-            height: 200px;
-            margin: 0 auto 30px;
-        }
-
-        .claim-progress-ring {
-            transform: rotate(-90deg);
-        }
-
-        .progress-ring-bg {
-            fill: none;
-            stroke: var(--bg-secondary);
-            stroke-width: 10;
-        }
-
-        .progress-ring-fill {
-            fill: none;
-            stroke: var(--accent-primary);
-            stroke-width: 10;
-            stroke-linecap: round;
-            stroke-dasharray: 565.48;
-            stroke-dashoffset: 565.48;
-            transition: stroke-dashoffset 1s linear;
-            filter: drop-shadow(0 0 10px var(--accent-primary));
-        }
-
-        .claim-timer-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
-
-        .timer-seconds {
-            font-size: 56px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #00d4ff 0%, #7b61ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            line-height: 1;
-        }
-
-        .timer-label {
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-top: 5px;
-        }
-
-        .claim-status-message {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 30px;
-            animation: messagePulse 2s ease-in-out infinite;
-        }
-
-        @keyframes messagePulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .claim-progress-bar {
-            width: 300px;
-            height: 6px;
-            background: var(--bg-secondary);
-            border-radius: 3px;
-            overflow: hidden;
-            margin: 0 auto;
-        }
-
-        .claim-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #00d4ff 0%, #7b61ff 100%);
-            width: 0%;
-            transition: width 1s linear;
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
-        }
-
-        /* App Container */
-        .app-container {
-            min-height: 100vh;
-            padding-bottom: 80px;
-        }
-
-        .app-header {
-            background: var(--bg-secondary);
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .logo-icon {
-            font-size: 32px;
-            filter: drop-shadow(0 2px 8px rgba(0, 212, 255, 0.5));
-        }
-
-        .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #00d4ff 0%, #7b61ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #00d4ff 0%, #7b61ff 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
-        }
-
-        .main-content {
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .tab-content {
-            display: none;
-            animation: fadeInUp 0.4s ease;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Balance Card */
-        .balance-card {
-            background: linear-gradient(135deg, #00d4ff 0%, #7b61ff 100%);
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 212, 255, 0.4);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .balance-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-            animation: cardGlow 4s ease-in-out infinite;
-        }
-
-        @keyframes cardGlow {
-            0%, 100% { transform: scale(1) rotate(0deg); }
-            50% { transform: scale(1.1) rotate(180deg); }
-        }
-
-        .balance-label {
-            font-size: 14px;
-            opacity: 0.9;
-            margin-bottom: 10px;
-        }
-
-        .balance-value {
-            font-size: 48px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-        }
-
-        .balance-subtext {
-            font-size: 14px;
-            opacity: 0.8;
-        }
-
-        /* Claim Button */
-        .claim-button {
-            width: 100%;
-            padding: 20px;
-            border: none;
-            border-radius: 15px;
-            font-size: 20px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .claim-button.ready {
-            background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
-            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.4);
-            animation: claimPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes claimPulse {
-            0%, 100% {
-                transform: scale(1);
-                box-shadow: 0 4px 20px rgba(0, 255, 136, 0.4);
-            }
-            50% {
-                transform: scale(1.02);
-                box-shadow: 0 6px 30px rgba(0, 255, 136, 0.6);
-            }
-        }
-
-        .claim-button.ready::before {
-            content: '';
-            position: absolute;
-            inset: -2px;
-            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%);
-            border-radius: inherit;
-            animation: claimShine 3s linear infinite;
-        }
-
-        @keyframes claimShine {
-            0% { transform: translateX(-100%) skewX(-15deg); }
-            100% { transform: translateX(200%) skewX(-15deg); }
-        }
-
-        .claim-button.cooldown,
-        .claim-button.sunday-locked {
-            background: var(--bg-secondary);
-            color: var(--text-secondary);
-            cursor: not-allowed;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .claim-icon {
-            font-size: 28px;
-        }
-
-        /* Market Card */
-        .market-card {
-            background: var(--bg-card);
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--border);
-        }
-
-        .market-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .market-title {
-            font-size: 14px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .market-status {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 12px;
-            color: var(--success);
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--success);
-            border-radius: 50%;
-            animation: statusBlink 2s ease-in-out infinite;
-        }
-
-        @keyframes statusBlink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        .market-price {
-            font-size: 36px;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-
-        .market-change {
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .market-change.positive {
-            color: var(--success);
-        }
-
-        .market-change.negative {
-            color: var(--danger);
-        }
-
-        .market-spectrum {
-            margin-top: 20px;
-            height: 60px;
-            border-radius: 10px;
-            overflow: hidden;
-            background: rgba(0, 0, 0, 0.3);
-        }
-
-        #spectrumCanvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-
-        /* Stats */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: var(--bg-card);
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border);
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-        }
-
-        .stat-icon {
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
-
-        .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--accent-primary);
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* Tiers */
-        .section-title {
-            font-size: 24px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .tiers-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-        }
-
-        .tier-card {
-            background: var(--bg-card);
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-            border: 2px solid var(--border);
-            transition: all 0.3s ease;
-        }
-
-        .tier-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-        }
-
-        .tier-card[data-tier="4"] {
-            border-color: rgba(255, 215, 0, 0.5);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
-        }
-
-        .tier-card[data-tier="5"] {
-            border-color: rgba(0, 150, 136, 0.5);
-            box-shadow: 0 0 25px rgba(0, 150, 136, 0.3);
-        }
-
-        .tier-card[data-tier="6"] {
-            border-color: rgba(3, 169, 244, 0.6);
-            box-shadow: 0 0 30px rgba(3, 169, 244, 0.4);
-        }
-
-        .tier-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .tier-name {
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .tier-badge {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 5px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-        }
-
-        .tier-price {
-            font-size: 42px;
-            font-weight: 700;
-            color: var(--accent-primary);
-            margin-bottom: 20px;
-        }
-
-        .tier-details {
-            margin-bottom: 20px;
-        }
-
-        .tier-detail-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border);
-            font-size: 14px;
-        }
-
-        .tier-detail-item:last-child {
-            border-bottom: none;
-        }
-
-        .tier-rate {
-            color: var(--success);
-            font-weight: 600;
-        }
-
-        .btn-activate {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            background: linear-gradient(135deg, #00d4ff 0%, #7b61ff 100%);
-            color: var(--text-primary);
-            transition: all 0.3s ease;
-        }
-
-        .btn-activate:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
-        }
-
-        .btn-activate:disabled {
-            background: var(--bg-secondary);
-            color: var(--text-secondary);
-            cursor: not-allowed;
-            opacity: 0.5;
-        }
-
-        /* Wallet */
-        .wallet-card {
-            background: var(--bg-card);
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .wallet-label {
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-bottom: 10px;
-        }
-
-        .wallet-value {
-            font-size: 48px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #00d4ff 0%, #7b61ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .btn-withdraw {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: 600;
-            background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
-            color: var(--bg-primary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 20px;
-        }
-
-        .btn-withdraw:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
-        }
-
-        .wallet-info {
-            background: var(--bg-card);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .info-item:last-child {
-            border-bottom: none;
-        }
-
-        .network-badge {
-            background: rgba(0, 212, 255, 0.1);
-            color: var(--accent-primary);
-            padding: 5px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        /* Referral */
-        .referral-card {
-            background: var(--bg-card);
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-            margin-bottom: 20px;
-        }
-
-        .referral-label {
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .referral-code-box {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .referral-code {
-            flex: 1;
-            background: var(--bg-secondary);
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 20px;
-            font-weight: 700;
-            text-align: center;
-            color: var(--accent-primary);
-            letter-spacing: 2px;
-        }
-
-        .btn-copy {
-            background: linear-gradient(135deg, #00d4ff 0%, #7b61ff 100%);
-            border: none;
-            padding: 15px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-copy:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
-        }
-
-        .team-stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-        }
-
-        .team-stat-card {
-            background: var(--bg-card);
-            padding: 25px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .team-stat-value {
-            font-size: 36px;
-            font-weight: 700;
-            color: var(--accent-primary);
-            margin-bottom: 10px;
-        }
-
-        .team-stat-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-        }
-
-        /* Bottom Nav */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--bg-secondary);
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-        }
-
-        .nav-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            padding: 10px 20px;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .nav-btn.active {
-            color: var(--accent-primary);
-        }
-
-        .nav-btn.active::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 3px;
-            background: linear-gradient(90deg, #00d4ff 0%, #7b61ff 100%);
-            border-radius: 0 0 3px 3px;
-        }
-
-        .nav-icon {
-            font-size: 24px;
-        }
-
-        .nav-label {
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        @media (max-width: 768px) {
-            .balance-value {
-                font-size: 36px;
-            }
-            
-            .market-price {
-                font-size: 28px;
-            }
-            
-            .tiers-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <!-- ✅ المسار الصحيح -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-    <!-- نفس محتوى HTML السابق بدون تغيير... -->
-    <!-- يرجى نسخ كامل محتوى الـ body من الملف السابق -->
     
-    <!-- سأضع المحتوى الكامل في رسالة منفصلة لأنه طويل جداً -->
+    <!-- Language Button -->
+    <div class="language-float-btn" id="langFloatBtn">
+        <div class="lang-icon">🌐</div>
+    </div>
+    
+    <div class="language-selector-modal" id="langModal">
+        <div class="lang-modal-content">
+            <h3 data-lang-key="selectLanguage">اختر اللغة</h3>
+            <button class="lang-option" data-lang="ar">العربية 🇸🇦</button>
+            <button class="lang-option" data-lang="en">English 🇬🇧</button>
+            <button class="lang-option" data-lang="fr">Français 🇫🇷</button>
+        </div>
+    </div>
 
+    <!-- Shield Indicator -->
+    <div class="shield-indicator" id="shieldIndicator" style="display: none;">
+        <div class="shield-icon">🛡️</div>
+        <div class="shield-count" id="shieldCount">0</div>
+    </div>
+
+    <!-- Lucky Task Button -->
+    <div class="lucky-task-btn" id="luckyTaskBtn" style="display: none;">
+        <div class="task-icon">⭐</div>
+        <div class="task-pulse"></div>
+    </div>
+
+    <!-- Task Modal -->
+    <div class="task-modal" id="taskModal">
+        <div class="task-modal-content">
+            <div class="task-header">
+                <h2 data-lang-key="luckyTask">مهمة محظوظة!</h2>
+                <div class="task-reward">🎁</div>
+            </div>
+            <p data-lang-key="taskDescription">تفاعل مع القناة ادعم المحتوى بالتعليق والمشاركة</p>
+            <div class="task-upload-zone" id="taskUploadZone">
+                <div class="upload-icon">📸</div>
+                <p data-lang-key="uploadScreenshot">ارفع لقطة شاشة التفاعل</p>
+                <input type="file" id="taskFileInput" accept="image/*" style="display: none;">
+            </div>
+            <div class="task-actions">
+                <button class="btn-task-submit" id="btnTaskSubmit" disabled>
+                    <span data-lang-key="submitTask">إرسال المهمة</span>
+                </button>
+                <button class="btn-task-cancel" id="btnTaskCancel">
+                    <span data-lang-key="cancel">إلغاء</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contract Modal -->
+    <div class="contract-modal" id="contractModal">
+        <div class="contract-content">
+            <div class="contract-header">
+                <h2 data-lang-key="careerContract">عقد المسار المهني</h2>
+                <div class="contract-tier-badge" id="contractTierBadge">Tier 1</div>
+            </div>
+            
+            <div class="contract-body">
+                <div class="contract-section">
+                    <h3 data-lang-key="contractTerms">شروط العقد</h3>
+                    <div class="contract-details" id="contractDetails"></div>
+                </div>
+
+                <div class="contract-section">
+                    <h3 data-lang-key="workMechanism">آلية العمل</h3>
+                    <ul class="contract-points" id="contractPoints"></ul>
+                </div>
+
+                <div class="contract-agreement">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="agreeCheckbox">
+                        <span class="checkmark"></span>
+                        <span data-lang-key="agreeToTerms">أوافق على الشروط والأحكام</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="contract-footer">
+                <button class="btn-contract-accept" id="btnContractAccept" disabled>
+                    <span data-lang-key="acceptAndSubscribe">الموافقة والاشتراك</span>
+                </button>
+                <button class="btn-contract-decline" id="btnContractDecline">
+                    <span data-lang-key="decline">رفض</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Claim Overlay (60s) -->
+    <div class="claim-overlay" id="claimOverlay">
+        <div class="claim-overlay-content">
+            <div class="claim-timer-circle">
+                <svg class="claim-progress-ring" width="200" height="200">
+                    <circle class="progress-ring-bg" cx="100" cy="100" r="90"></circle>
+                    <circle class="progress-ring-fill" cx="100" cy="100" r="90" id="progressRing"></circle>
+                </svg>
+                <div class="claim-timer-text">
+                    <div class="timer-seconds" id="claimTimerSeconds">60</div>
+                    <div class="timer-label" data-lang-key="seconds">ثانية</div>
+                </div>
+            </div>
+            <div class="claim-status-message" id="claimStatusMessage" data-lang-key="processingDeal">
+                جارٍ الحصول على صفقة...
+            </div>
+            <div class="claim-progress-bar">
+                <div class="claim-progress-fill" id="claimProgressFill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Container -->
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <div class="logo-icon">💼</div>
+                <div class="logo-text">NexCareer</div>
+            </div>
+            <div class="header-right">
+                <div class="user-avatar" id="userAvatar">👤</div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            
+            <!-- Home Tab -->
+            <div class="tab-content active" id="homeTab">
+                
+                <!-- Balance Card -->
+                <div class="balance-card">
+                    <div class="balance-label" data-lang-key="totalBalance">الرصيد الإجمالي</div>
+                    <div class="balance-value" id="balance">$0.00</div>
+                    <div class="balance-subtext">
+                        <span data-lang-key="totalEarned">إجمالي الأرباح:</span>
+                        <span id="totalEarned">$0.00</span>
+                    </div>
+                </div>
+
+                <!-- Claim Button -->
+                <button class="claim-button ready" id="claimButton">
+                    <span class="claim-text" data-lang-key="claimReward">استلام المكافأة</span>
+                    <div class="claim-icon">💰</div>
+                </button>
+
+                <!-- Market Card -->
+                <div class="market-card" id="marketCard">
+                    <div class="market-header">
+                        <div class="market-title" data-lang-key="liveMarket">السوق الحي</div>
+                        <div class="market-status" id="marketStatus">
+                            <span class="status-dot"></span>
+                            <span data-lang-key="active">نشط</span>
+                        </div>
+                    </div>
+                    <div class="market-price" id="marketPrice">$1.0000</div>
+                    <div class="market-change" id="marketChange">+0.00%</div>
+                    
+                    <div class="market-spectrum" id="marketSpectrum">
+                        <canvas id="spectrumCanvas" width="300" height="60"></canvas>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-value" id="dailyProfit">$0.00</div>
+                        <div class="stat-label" data-lang-key="dailyProfit">الربح اليومي</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-value" id="activeContracts">0</div>
+                        <div class="stat-label" data-lang-key="activeContracts">العقود النشطة</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Invest Tab -->
+            <div class="tab-content" id="investTab">
+                <h2 class="section-title" data-lang-key="careerPlans">خطط المسار المهني</h2>
+                
+                <div class="tiers-grid">
+                    <!-- Tier 1 -->
+                    <div class="tier-card" data-tier="1">
+                        <div class="tier-header">
+                            <div class="tier-name" data-lang-key="intern">متدرب</div>
+                            <div class="tier-badge">Tier 1</div>
+                        </div>
+                        <div class="tier-price">$25</div>
+                        <div class="tier-details">
+                            <div class="tier-detail-item">
+                                <span data-lang-key="dailyReturn">عائد يومي:</span>
+                                <span class="tier-rate">2.2% - 3.4%</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="endBonus">مكافأة نهاية الخدمة:</span>
+                                <span>$2</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="duration">المدة:</span>
+                                <span>60 يوم</span>
+                            </div>
+                        </div>
+                        <button class="btn-activate" data-tier="1">
+                            <span data-lang-key="activate">تفعيل</span>
+                        </button>
+                    </div>
+
+                    <!-- Tier 2 -->
+                    <div class="tier-card" data-tier="2">
+                        <div class="tier-header">
+                            <div class="tier-name" data-lang-key="junior">مبتدئ</div>
+                            <div class="tier-badge">Tier 2</div>
+                        </div>
+                        <div class="tier-price">$50</div>
+                        <div class="tier-details">
+                            <div class="tier-detail-item">
+                                <span data-lang-key="dailyReturn">عائد يومي:</span>
+                                <span class="tier-rate">2.3% - 3.5%</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="endBonus">مكافأة نهاية الخدمة:</span>
+                                <span>$5</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="duration">المدة:</span>
+                                <span>60 يوم</span>
+                            </div>
+                        </div>
+                        <button class="btn-activate" data-tier="2">
+                            <span data-lang-key="activate">تفعيل</span>
+                        </button>
+                    </div>
+
+                    <!-- Tier 3 -->
+                    <div class="tier-card" data-tier="3">
+                        <div class="tier-header">
+                            <div class="tier-name" data-lang-key="pro">محترف</div>
+                            <div class="tier-badge">Tier 3</div>
+                        </div>
+                        <div class="tier-price">$100</div>
+                        <div class="tier-details">
+                            <div class="tier-detail-item">
+                                <span data-lang-key="dailyReturn">عائد يومي:</span>
+                                <span class="tier-rate">2.4% - 3.6%</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="endBonus">مكافأة نهاية الخدمة:</span>
+                                <span>$12</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="duration">المدة:</span>
+                                <span>60 يوم</span>
+                            </div>
+                        </div>
+                        <button class="btn-activate" data-tier="3">
+                            <span data-lang-key="activate">تفعيل</span>
+                        </button>
+                    </div>
+
+                    <!-- Tier 4 -->
+                    <div class="tier-card" data-tier="4">
+                        <div class="tier-header">
+                            <div class="tier-name" data-lang-key="expert">خبير</div>
+                            <div class="tier-badge">Tier 4</div>
+                        </div>
+                        <div class="tier-price">$250</div>
+                        <div class="tier-details">
+                            <div class="tier-detail-item">
+                                <span data-lang-key="dailyReturn">عائد يومي:</span>
+                                <span class="tier-rate">2.5% - 3.7%</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="endBonus">مكافأة نهاية الخدمة:</span>
+                                <span>$30</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="duration">المدة:</span>
+                                <span>60 يوم</span>
+                            </div>
+                        </div>
+                        <button class="btn-activate" data-tier="4" disabled>
+                            <span data-lang-key="locked">مقفل</span>
+                        </button>
+                    </div>
+
+                    <!-- Tier 5 -->
+                    <div class="tier-card" data-tier="5">
+                        <div class="tier-header">
+                            <div class="tier-name" data-lang-key="manager">مدير</div>
+                            <div class="tier-badge">Tier 5</div>
+                        </div>
+                        <div class="tier-price">$500</div>
+                        <div class="tier-details">
+                            <div class="tier-detail-item">
+                                <span data-lang-key="dailyReturn">عائد يومي:</span>
+                                <span class="tier-rate">2.6% - 3.8%</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="endBonus">مكافأة نهاية الخدمة:</span>
+                                <span>$70</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="duration">المدة:</span>
+                                <span>60 يوم</span>
+                            </div>
+                        </div>
+                        <button class="btn-activate" data-tier="5" disabled>
+                            <span data-lang-key="locked">مقفل</span>
+                        </button>
+                    </div>
+
+                    <!-- Tier 6 -->
+                    <div class="tier-card" data-tier="6">
+                        <div class="tier-header">
+                            <div class="tier-name" data-lang-key="partner">شريك</div>
+                            <div class="tier-badge">Tier 6</div>
+                        </div>
+                        <div class="tier-price">$1,000</div>
+                        <div class="tier-details">
+                            <div class="tier-detail-item">
+                                <span data-lang-key="dailyReturn">عائد يومي:</span>
+                                <span class="tier-rate">2.7% - 3.9%</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="endBonus">مكافأة نهاية الخدمة:</span>
+                                <span>$150</span>
+                            </div>
+                            <div class="tier-detail-item">
+                                <span data-lang-key="duration">المدة:</span>
+                                <span>60 يوم</span>
+                            </div>
+                        </div>
+                        <button class="btn-activate" data-tier="6" disabled>
+                            <span data-lang-key="locked">مقفل</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wallet Tab -->
+            <div class="tab-content" id="walletTab">
+                <h2 class="section-title" data-lang-key="wallet">المحفظة</h2>
+                
+                <div class="wallet-card">
+                    <div class="wallet-balance">
+                        <div class="wallet-label" data-lang-key="availableBalance">الرصيد المتاح</div>
+                        <div class="wallet-value" id="walletBalance">$0.00</div>
+                    </div>
+                    <button class="btn-withdraw" id="btnWithdraw">
+                        <span data-lang-key="withdraw">سحب</span>
+                    </button>
+                </div>
+
+                <div class="wallet-info">
+                    <div class="info-item">
+                        <span data-lang-key="network">الشبكة:</span>
+                        <span class="network-badge">USDT - BEP20</span>
+                    </div>
+                    <div class="info-item">
+                        <span data-lang-key="minWithdraw">الحد الأدنى:</span>
+                        <span>$5.00</span>
+                    </div>
+                    <div class="info-item">
+                        <span data-lang-key="processingTime">وقت المعالجة:</span>
+                        <span>24-72 ساعة</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Tab -->
+            <div class="tab-content" id="teamTab">
+                <h2 class="section-title" data-lang-key="team">الفريق</h2>
+                
+                <div class="referral-card">
+                    <div class="referral-label" data-lang-key="yourCode">كود الإحالة الخاص بك</div>
+                    <div class="referral-code-box">
+                        <div class="referral-code" id="referralCode">NEXCAR123</div>
+                        <button class="btn-copy" id="btnCopyRef">
+                            <span>📋</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="team-stats">
+                    <div class="team-stat-card">
+                        <div class="team-stat-value" id="teamCount">0</div>
+                        <div class="team-stat-label" data-lang-key="teamMembers">أعضاء الفريق</div>
+                    </div>
+                    <div class="team-stat-card">
+                        <div class="team-stat-value" id="teamEarnings">$0.00</div>
+                        <div class="team-stat-label" data-lang-key="teamEarnings">أرباح الفريق</div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Bottom Nav -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-tab="homeTab">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label" data-lang-key="home">الرئيسية</div>
+            </button>
+            <button class="nav-btn" data-tab="investTab">
+                <div class="nav-icon">💼</div>
+                <div class="nav-label" data-lang-key="invest">استثمار</div>
+            </button>
+            <button class="nav-btn" data-tab="walletTab">
+                <div class="nav-icon">💳</div>
+                <div class="nav-label" data-lang-key="wallet">محفظة</div>
+            </button>
+            <button class="nav-btn" data-tab="teamTab">
+                <div class="nav-icon">👥</div>
+                <div class="nav-label" data-lang-key="team">فريق</div>
+            </button>
+        </nav>
+
+    </div>
+
+    <!-- ✅ المسار الصحيح -->
+    <script src="js/app.js"></script>
 </body>
 </html>
